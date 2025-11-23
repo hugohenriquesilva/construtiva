@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from "react";
 import {
   ScrollView,
@@ -19,8 +20,8 @@ export default function meuPortfolio() {
   const [clt, setClt] = useState(false);
   const [descricao, setDescricao] = useState("");
   const [azul, setAzul] = useState(false);
+  const corFundo = azul ? "#c4d4e2ff" : "#FFF";
 
-  useEffect(() => {
   async function carregarDados() {
     const dadosSalvos = await AsyncStorage.getItem("@meuPortfolio");
 
@@ -35,17 +36,15 @@ export default function meuPortfolio() {
     }
   }
 
-  carregarDados();
+  useEffect(() => {
+    carregarDados();
   }, []);
 
-
   function workClt() {
-    if (clt == false) {
-      setClt(true);
-    } else {
-      setClt(false);
-    }
+    setClt(!clt);
+    setAzul(!clt);
   }
+
 
   async function publicar() {
   if (!area || !cidade || !bairro || !disponibilidade || !descricao) {
@@ -78,9 +77,9 @@ export default function meuPortfolio() {
 
   return (
     <ScrollView
-      style={[styles.container, clt && { backgroundColor: "#97b8ffff" }]}
+      style={[styles.container, clt && { backgroundColor: corFundo}]}
     >
-      <Text style={styles.title}>Meu Portfólio</Text>
+      <Text style={styles.title}></Text>
 
       {/* Área de atuação */}
       <Text style={styles.label}>Selecionar área de atuação:</Text>
@@ -125,6 +124,7 @@ export default function meuPortfolio() {
           selectedValue={disponibilidade}
           onValueChange={(v) => setDisponibilidade(v)}
           style={styles.picker}
+          itemStyle={styles.pickerItem}
         >
           <Picker.Item label="Selecione" value="" />
           <Picker.Item label="Próximos 3 dias" value="Em 3 dias" />
@@ -147,16 +147,24 @@ export default function meuPortfolio() {
         style={styles.textArea}
         multiline
         numberOfLines={6}
-        placeholder="Descreva brevemente seu trabalho. Dica:
-        +Coloque os anos de experiência
-        +Coloque serviços relevantes
-        +Coloque os serviços que consegue fazer"
+        placeholder={
+        `Descreva brevemente seu trabalho. Dica:
+        + Coloque os anos de experiência
+        + Coloque serviços relevantes
+        + Coloque os serviços que consegue fazer`}
         value={descricao}
         onChangeText={setDescricao}
       />
 
-      <TouchableOpacity style={styles.botaoPublicar} onPress={publicar}>
-      <Text style={styles.botaoTexto}>Publicar</Text>
+      <TouchableOpacity onPress={publicar}>
+        <LinearGradient
+          colors={["#5B69A3", "#D26E38"]} // esquerda → direita
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.botaoPublicar}
+        >
+          <Text style={styles.botaoTexto}>Publicar</Text>
+        </LinearGradient>
       </TouchableOpacity>
 
     </ScrollView>
@@ -167,7 +175,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 18,
-    backgroundColor: "#faf8e8",
+    backgroundColor: "#FFF",
+    marginTop: -35,
   },
   title: {
     fontSize: 26,
@@ -175,6 +184,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: "#4b4b4b",
     alignSelf: "center",
+    fontFamily: "Jua",
   },
   label: {
     fontSize: 14,
@@ -198,13 +208,18 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
-    padding: 5,
-    margin: 5,
+    color: "#333",
+    fontSize: 15,
   },
+
+  pickerItem: {
+    fontSize: 18,
+    color: "#555",
+  },
+
   switchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 15,
   },
   switchText: {
     marginLeft: 8,
@@ -215,27 +230,21 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     height: 150,
-    marginTop: 5,
+    marginTop: 15,
     textAlignVertical: "top",
   },
   botaoPublicar: {
-    backgroundColor: "linear-gradient(90deg, #6A00D7, #FF8A00)", // ajustar se usar expo-linear-gradient
     marginTop: 25,
     paddingVertical: 14,
     borderRadius: 30,
     alignItems: "center",
+    alignSelf: "flex-start",
+    paddingHorizontal: 55,
   },
   botaoTexto: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
-  },
-
-  botaoPublicar: {
-    backgroundColor: "#6A00D7",
-    marginTop: 25,
-    paddingVertical: 14,
-    borderRadius: 30,
-    alignItems: "center",
+    fontFamily: "Jua",
   },
 });

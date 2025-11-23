@@ -17,8 +17,11 @@ export default function Home() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>Procurar profissionais</Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 50 }}
+    >
+      <Text style={styles.header}></Text>
 
       <View style={styles.filterBox}>
         <Text style={styles.filterText}>
@@ -51,13 +54,23 @@ export default function Home() {
 
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Local:</Text>
-          <Text style={styles.infoValue}>Jardim Astro</Text>
-          <Text style={styles.infoValue}>Sorocaba</Text>
+
+          <View style={styles.infoValueBox}>
+            <Text style={styles.infoValue}>Jardim Astro</Text>
+          </View>
+
+          <View style={styles.infoValueBox}>
+            <Text style={styles.infoValue}>Sorocaba</Text>
+          </View>
         </View>
 
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Disponibilidade:</Text>
-          <Text style={styles.infoValue}>Início imediato</Text>
+
+          <View style={styles.infoBox}>
+            <Text style={styles.infoValue}>Início imediato</Text>
+          </View>
+
         </View>
 
         <TouchableOpacity style={styles.button} onPress={Conversar}>
@@ -85,13 +98,22 @@ export default function Home() {
 
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Local:</Text>
-          <Text style={styles.infoValue}>Vitoria Régia III</Text>
-          <Text style={styles.infoValue}>Sorocaba</Text>
+          
+          <View style={styles.infoValueBox}>
+            <Text style={styles.infoValue}>Jardim Vitória Régia</Text>
+          </View>
+
+          <View style={styles.infoValueBox}>
+            <Text style={styles.infoValue}>Sorocaba</Text>
+          </View>
         </View>
 
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Disponibilidade:</Text>
-          <Text style={styles.infoValue}>Mediante agendamento</Text>
+
+          <View style={styles.infoBox}>
+            <Text style={styles.infoValue}>Mediante agendamento</Text>
+          </View>
         </View>
 
         <TouchableOpacity style={styles.button} onPress={Conversar}>
@@ -103,7 +125,7 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#faf8e8", padding: 10 },
+  container: { flex: 1, backgroundColor: "#FFF", padding: 10 },
 
   header: {
     fontSize: 26,
@@ -118,9 +140,11 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     marginBottom: 20,
+    marginTop: -33,
     borderWidth: 1,
     borderColor: "#ddd",
   },
+
   filterText: { fontSize: 14, marginBottom: 10, color: "#555" },
 
   selectRow: { flexDirection: "row", gap: 10 },
@@ -144,14 +168,16 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
 
-  cardName: { fontSize: 20, fontWeight: "600", textAlign: "center" },
-  cardRole: { fontSize: 16, textAlign: "center", marginBottom: 10 },
+  cardName: { fontSize: 20, fontWeight: "600", textAlign: "center", fontFamily: "Jua" },
+  cardRole: { fontSize: 16, textAlign: "center", marginBottom: 10, fontFamily: "Jua" },
 
   sectionLabel: {
     fontWeight: "600",
-    color: "#4b4b4b",
+    color: "#5b69a3",
     marginBottom: 5,
     marginTop: 5,
+    fontFamily: "Jua",
+    fontSize: 16,
   },
 
   descriptionBox: {
@@ -164,8 +190,29 @@ const styles = StyleSheet.create({
   descriptionText: { fontSize: 14, color: "#444" },
 
   infoRow: { flexDirection: "row", alignItems: "center", marginBottom: 5 },
-  infoLabel: { fontWeight: "600", marginRight: 5 },
-  infoValue: { marginRight: 10, color: "#333" },
+  infoLabel: { fontWeight: "600", marginRight: 5, color: "#5B69A3",fontFamily: "Jua", fontSize: 16 },
+  
+  infoBox: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+
+  infoValueBox: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
+  infoValue: {
+    color: "#333",
+    fontSize: 14,
+  },
 
   button: {
     marginTop: 10,
@@ -174,5 +221,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
-  buttonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  buttonText: { color: "#fff", fontSize: 18, fontFamily: "Jua"},
 });
