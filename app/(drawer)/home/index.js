@@ -1,20 +1,65 @@
-import React from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Picker } from "@react-native-picker/picker";
+import { useNavigation } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
-import { ModalMostraContato } from "../../../src/components/mostraContato/index";
 
 export default function Home() {
+  const [filtrosProfissional, setFiltrosProfissional] = useState([]);
+  const [filtrosLocalizacao, setFiltrosLocalizacao] = useState([]);
+
+  const [profissionalSelecionado, setProfissionalSelecionado] = useState("");
+  const [localizacaoSelecionada, setLocalizacaoSelecionada] = useState("");
+
+  const navigation = useNavigation();
   const [modalVisible, setModalVisible] = React.useState(false);
+  const [cards, setCards] = useState([]);
+
+  useEffect(() => {
+  async function carregarCards() {
+    const dados = await AsyncStorage.getItem("@listaPortfolio");
+
+    if (dados) {
+      const lista = JSON.parse(dados);
+      setCards(lista);
+
+      const profs = [...new Set(lista.map(item => item.area))];
+      const locs = [...new Set(lista.map(item => item.cidade))];
+
+      setFiltrosProfissional(profs);
+      setFiltrosLocalizacao(locs);
+
+    } else {
+      setCards([]); //caso ainda não exista nada salvo
+    }
+  }
+
+  //Carregar ao abrir o app
+  carregarCards();
+
+  //Atualizar sempre que voltar para a tela
+  const unsubscribe = navigation.addListener("focus", carregarCards);
+  return unsubscribe;
+}, [navigation]);
 
   function Conversar() {
     setModalVisible(true); //abri um modal que foi importado previamente
   }
+
+    const cardsFiltrados = cards.filter((item) => {
+    return (
+      (profissionalSelecionado === "" ||
+        item.area === profissionalSelecionado) &&
+      (localizacaoSelecionada === "" ||
+        item.cidade === localizacaoSelecionada)
+    );
+  });
 
   return (
     <ScrollView
@@ -24,102 +69,101 @@ export default function Home() {
       <Text style={styles.header}></Text>
 
       <View style={styles.filterBox}>
-        <Text style={styles.filterText}>
-          Filtre de acordo com a sua necessidade
-        </Text>
+        <Text style={styles.filterText}>Filtre de acordo com a sua necessidade</Text>
 
         <View style={styles.selectRow}>
+
+          {/* FILTRO PROFISSIONAL */}
           <View style={styles.select}>
-            <Text style={styles.selectLabel}>Profissional ▼</Text>
+            <Picker
+              selectedValue={profissionalSelecionado}
+              onValueChange={(value) => setProfissionalSelecionado(value)}
+              style={{ width: "100%" }}
+            >
+              <Picker.Item label="Profissional ▼" value="" />
+
+              {filtrosProfissional.map((prof, index) => (
+                <Picker.Item key={index} label={prof} value={prof} />
+              ))}
+            </Picker>
           </View>
+
+          {/* FILTRO LOCALIZAÇÃO */}
           <View style={styles.select}>
-            <Text style={styles.selectLabel}>Localização ▼</Text>
+            <Picker
+              selectedValue={localizacaoSelecionada}
+              onValueChange={(value) => setLocalizacaoSelecionada(value)}
+              style={{ width: "100%" }}
+            >
+              <Picker.Item label="Localização ▼" value="" />
+
+              {filtrosLocalizacao.map((loc, index) => (
+                <Picker.Item key={index} label={loc} value={loc} />
+              ))}
+            </Picker>
           </View>
         </View>
       </View>
 
-      {/* Card 1 */}
-      <View style={styles.card}>
-        <Text style={styles.cardName}>José Antônio Barbosa</Text>
-        <Text style={styles.cardRole}>Pedreiro</Text>
 
-        <Text style={styles.sectionLabel}>Descrição:</Text>
-        <View style={styles.descriptionBox}>
-          <Text style={styles.descriptionText}>
-            Sou pedreiro com 15 anos de experiência. Já participei da construção
-            do shopping Iguatemi, de várias lojas. Sei fazer da fundação ao
-            acabamento.
-          </Text>
-        </View>
+      {/* Cards Dinâmicos e Filtrados */}
+      {cardsFiltrados.map((item, index) => (
+        <View key={index} style={styles.card}>
 
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Local:</Text>
-
-          <View style={styles.infoValueBox}>
-            <Text style={styles.infoValue}>Jardim Astro</Text>
-          </View>
-
-          <View style={styles.infoValueBox}>
-            <Text style={styles.infoValue}>Sorocaba</Text>
-          </View>
-        </View>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Disponibilidade:</Text>
-
-          <View style={styles.infoBox}>
-            <Text style={styles.infoValue}>Início imediato</Text>
-          </View>
-
-        </View>
-
-        <TouchableOpacity style={styles.button} onPress={Conversar}>
-          <Text style={styles.buttonText}>Conversar</Text>
-        </TouchableOpacity>
-
-        <Modal visible={modalVisible} animationType="slide">
-          <ModalMostraContato handleClose={() => setModalVisible(false)} />
-        </Modal>
-      </View>
-
-      {/* Card 2 */}
-      <View style={styles.card}>
-        <Text style={styles.cardName}>Paulo Cesar Meneguel</Text>
-        <Text style={styles.cardRole}>Pintor</Text>
-
-        <Text style={styles.sectionLabel}>Descrição:</Text>
-        <View style={styles.descriptionBox}>
-          <Text style={styles.descriptionText}>
-            Meu nome é Paulo, faço pintura, massa corrida, pintura de portão,
-            portas, envernizamento e muito mais. Tenho 10 anos de experiência e
-            transporte próprio.
-          </Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Local:</Text>
+          <Text style={styles.cardName}>{item.nome}</Text>
           
-          <View style={styles.infoValueBox}>
-            <Text style={styles.infoValue}>Jardim Vitória Régia</Text>
+          {/* Badge CLT (somente se for true) */}
+          {item.clt && (
+            <View style={styles.badgeCLT}>
+              <Text style={styles.badgeText}>CLT</Text>
+            </View>
+          )}
+
+          <Text style={styles.cardProfissional}>Profissional</Text>
+
+          <Text style={styles.cardRole}>{item.area}</Text>
+
+          <Text style={styles.sectionLabel}>Descrição:</Text>
+          <View style={styles.descriptionBox}>
+            <Text style={styles.descriptionText}>{item.descricao}</Text>
           </View>
 
-          <View style={styles.infoValueBox}>
-            <Text style={styles.infoValue}>Sorocaba</Text>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Local:</Text>
+
+            <View style={styles.infoValueBox}>
+              <Text style={styles.infoValue}>{item.bairro}</Text>
+            </View>
+
+            <View style={styles.infoValueBox}>
+              <Text style={styles.infoValue}>{item.cidade}</Text>
+            </View>
           </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Disponibilidade:</Text>
+
+            <View style={styles.infoBox}>
+              <Text style={styles.infoValue}>{item.disponibilidade}</Text>
+            </View>
+          </View>
+
+          {item.clt && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Contratação:</Text>
+
+              <View style={styles.infoBox}>
+                <Text style={styles.infoValue}>Disponível para CLT</Text>
+              </View>
+            </View>
+          )}
+
+          <TouchableOpacity style={styles.button} onPress={Conversar}>
+            <Text style={styles.buttonText}>Conversar</Text>
+          </TouchableOpacity>
+
         </View>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Disponibilidade:</Text>
-
-          <View style={styles.infoBox}>
-            <Text style={styles.infoValue}>Mediante agendamento</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.button} onPress={Conversar}>
-          <Text style={styles.buttonText}>Conversar</Text>
-        </TouchableOpacity>
-      </View>
+      ))}
     </ScrollView>
   );
 }
@@ -152,11 +196,12 @@ const styles = StyleSheet.create({
   select: {
     flex: 1,
     backgroundColor: "#ddd",
-    padding: 8,
+    padding: 2,
     borderRadius: 10,
     alignItems: "center",
   },
-  selectLabel: { fontSize: 14, color: "#444" },
+
+  selectLabel: { fontSize: 10, color: "#444" },
 
   card: {
     backgroundColor: "#e8e8e8",
@@ -168,8 +213,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
 
-  cardName: { fontSize: 20, fontWeight: "600", textAlign: "center", fontFamily: "Jua" },
-  cardRole: { fontSize: 16, textAlign: "center", marginBottom: 10, fontFamily: "Jua" },
+  cardName: { fontSize: 20, fontWeight: "600", textAlign: "center", fontFamily: "Jua", marginBottom: 7},
+  cardProfissional: { fontSize: 18, fontWeight: "600", textAlign: "center", fontFamily: "Jua" },
+  cardRole: { fontSize: 17, textAlign: "center", marginBottom: 10, fontFamily: "Jua" },
 
   sectionLabel: {
     fontWeight: "600",
@@ -222,4 +268,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: { color: "#fff", fontSize: 18, fontFamily: "Jua"},
+
+  badgeCLT: {
+    alignSelf: "center",
+    backgroundColor: "#5B69A3", // azul bonito
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 6,
+  },
+
+  badgeText: {
+    color: "#FFF",
+    fontSize: 12,
+    fontFamily: "Jua",
+  },
+
 });

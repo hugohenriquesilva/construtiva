@@ -56,3 +56,5 @@ export function CustomDrawerContent(props) {
     </DrawerContentScrollView>
   );
 }
+
+export default CustomDrawerContent;

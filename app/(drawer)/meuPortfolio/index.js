@@ -1,8 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -13,6 +15,7 @@ import {
 } from "react-native";
 
 export default function meuPortfolio() {
+  const [nome, setNome] = useState("");
   const [area, setArea] = useState("");
   const [cidade, setCidade] = useState("");
   const [bairro, setBairro] = useState("");
@@ -22,24 +25,6 @@ export default function meuPortfolio() {
   const [azul, setAzul] = useState(false);
   const corFundo = azul ? "#c4d4e2ff" : "#FFF";
 
-  async function carregarDados() {
-    const dadosSalvos = await AsyncStorage.getItem("@meuPortfolio");
-
-    if (dadosSalvos) {
-      const obj = JSON.parse(dadosSalvos);
-      setArea(obj.area);
-      setCidade(obj.cidade);
-      setBairro(obj.bairro);
-      setDisponibilidade(obj.disponibilidade);
-      setClt(obj.clt);
-      setDescricao(obj.descricao);
-    }
-  }
-
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
   function workClt() {
     setClt(!clt);
     setAzul(!clt);
@@ -47,127 +32,159 @@ export default function meuPortfolio() {
 
 
   async function publicar() {
-  if (!area || !cidade || !bairro || !disponibilidade || !descricao) {
-    alert("Preencha todos os campos antes de publicar!");
-    return;
-  }
+    if (!nome || !area || !cidade || !bairro || !disponibilidade || !descricao) {
+      alert("Preencha todos os campos antes de publicar!");
+      return;
+    }
 
-  const dadosPortfolio = {
-    area,
-    cidade,
-    bairro,
-    disponibilidade,
-    clt,
-    descricao,
-  };
+    const novoCard = {
+      nome,
+      area,
+      cidade,
+      bairro,
+      disponibilidade,
+      descricao,
+      clt,
+    };
 
     try {
-      await AsyncStorage.setItem(
-        "@meuPortfolio",
-        JSON.stringify(dadosPortfolio)
-      );
+      const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
 
-      alert("Portfólio salvo com sucesso!");
+      let lista = listaAtual ? JSON.parse(listaAtual) : [];
+
+      lista.push(novoCard);
+
+      await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
+
+      alert("Portfólio publicado com sucesso!");
+      // limpar campos após publicar
+      setNome("");
+      setArea("");
+      setCidade("");
+      setBairro("");
+      setDisponibilidade("");
+      setClt(false);
+      setDescricao("");
+      setAzul(false);
     } catch (error) {
       console.error(error);
       alert("Erro ao salvar o portfólio.");
     }
   }
 
-
   return (
-    <ScrollView
-      style={[styles.container, clt && { backgroundColor: corFundo}]}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <Text style={styles.title}></Text>
 
-      {/* Área de atuação */}
-      <Text style={styles.label}>Selecionar área de atuação:</Text>
-      <View style={styles.inputSelect}>
-        <Picker
-          selectedValue={area} 
-          onValueChange={(v) => setArea(v)} 
-          style={styles.picker}
-        >
-          <Picker.Item label="Selecione" value="" />
-          <Picker.Item label="Pedreiro" value="Pedreiro" />
-          <Picker.Item label="Pintor" value="Pintor" />
-          <Picker.Item label="Gesseiro" value="Gesseiro" />
-          <Picker.Item label="Azulejista" value="Azulejista" />
-        </Picker>
-      </View>
+      <ScrollView
+        style={[styles.container, clt && { backgroundColor: corFundo }]}
+        contentContainerStyle={{ paddingBottom: 80 }}
+        keyboardShouldPersistTaps="handled"
+      >
 
-      {/* Cidade */}
-      <Text style={styles.label}>Selecionar minha cidade:</Text>
-      <View style={styles.inputText}>
+        <Text style={styles.title}></Text>
+
+        {/* Nome do Profissional */}
+        <Text style={styles.label}>Nome do profissional:</Text>
+        <View style={styles.inputText}>
+          <TextInput
+            value={nome}
+            onChangeText={setNome}
+            placeholder="Digite seu nome"
+          />
+        </View>
+
+
+        {/* Área de atuação */}
+        <Text style={styles.label}>Área de atuação:</Text>
+        <View style={styles.inputSelect}>
+          <Picker
+            selectedValue={area}
+            onValueChange={(v) => setArea(v)}
+            style={styles.picker}
+          >
+            <Picker.Item label="Selecione sua área profissional" value="" />
+            <Picker.Item label="Pedreiro" value="Pedreiro" />
+            <Picker.Item label="Pintor" value="Pintor" />
+            <Picker.Item label="Gesseiro" value="Gesseiro" />
+            <Picker.Item label="Azulejista" value="Azulejista" />
+          </Picker>
+        </View>
+
+        {/* Cidade */}
+        <Text style={styles.label}>Cidade:</Text>
+        <View style={styles.inputText}>
+          <TextInput
+            value={cidade}
+            onChangeText={setCidade}
+            placeholder="Digite sua cidade"
+          />
+        </View>
+
+        {/* Bairro */}
+        <Text style={styles.label}>Bairro:</Text>
+        <View style={styles.inputText}>
+          <TextInput
+            value={bairro}
+            onChangeText={setBairro}
+            placeholder="Digite seu bairro"
+          />
+        </View>
+
+        {/* Disponibilidade */}
+        <Text style={styles.label}>Disponibilidade:</Text>
+        <View style={styles.inputSelect}>
+          <Picker
+            selectedValue={disponibilidade}
+            onValueChange={(v) => setDisponibilidade(v)}
+            style={styles.picker}
+            itemStyle={styles.pickerItem}
+          >
+            <Picker.Item label="Selecione" value="" />
+            <Picker.Item label="Próximos 3 dias" value="Em 3 dias" />
+            <Picker.Item label="Em uma semana" value="Próxima semana" />
+            <Picker.Item label="Daqui um mês" value="Em 1 mês" />
+            <Picker.Item label="Três meses ou mais" value="Daqui 3 meses" />
+          </Picker>
+        </View>
+
+        <View style={styles.switchContainer}>
+          <Switch value={clt} onValueChange={workClt} />
+          <Text style={styles.switchText}>
+            Disponível para trabalhar como CLT
+          </Text>
+        </View>
+
+        {/* Descrição */}
+        <Text style={styles.label}>Descrição do seu trabalho:</Text>
         <TextInput
-          value={cidade}
-          onChangeText={setCidade}
-          placeholder="Digite sua cidade"
-        />
-      </View>
-
-      {/* Bairro */}
-      <Text style={styles.label}>Bairro:</Text>
-      <View style={styles.inputText}>
-        <TextInput
-          value={bairro}
-          onChangeText={setBairro}
-          placeholder="Digite seu bairro"
-        />
-      </View>
-
-      {/* Disponibilidade */}
-      <Text style={styles.label}>Disponibilidade:</Text>
-      <View style={styles.inputSelect}>
-        <Picker
-          selectedValue={disponibilidade}
-          onValueChange={(v) => setDisponibilidade(v)}
-          style={styles.picker}
-          itemStyle={styles.pickerItem}
-        >
-          <Picker.Item label="Selecione" value="" />
-          <Picker.Item label="Próximos 3 dias" value="Em 3 dias" />
-          <Picker.Item label="Em uma semana" value="Próxima semana" />
-          <Picker.Item label="Daqui um mês" value="Em 1 mês" />
-          <Picker.Item label="Três meses ou mais" value="Daqui 3 meses" />
-        </Picker>
-      </View>
-
-      <View style={styles.switchContainer}>
-        <Switch value={clt} onValueChange={workClt} />
-        <Text style={styles.switchText}>
-          Disponível para trabalhar como CLT
-        </Text>
-      </View>
-
-      {/* Descrição */}
-      <Text style={styles.label}>Descrição do seu trabalho:</Text>
-      <TextInput
-        style={styles.textArea}
-        multiline
-        numberOfLines={6}
-        placeholder={
-        `Descreva brevemente seu trabalho. Dica:
+          style={styles.textArea}
+          multiline
+          numberOfLines={6}
+          placeholder={
+            `Descreva brevemente seu trabalho. Dica:
         + Coloque os anos de experiência
         + Coloque serviços relevantes
         + Coloque os serviços que consegue fazer`}
-        value={descricao}
-        onChangeText={setDescricao}
-      />
+          value={descricao}
+          onChangeText={setDescricao}
+        />
 
-      <TouchableOpacity onPress={publicar}>
-        <LinearGradient
-          colors={["#5B69A3", "#D26E38"]} // esquerda → direita
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.botaoPublicar}
-        >
-          <Text style={styles.botaoTexto}>Publicar</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+        <TouchableOpacity onPress={publicar}>
+          <LinearGradient
+            colors={["#5B69A3", "#D26E38"]} // esquerda → direita
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.botaoPublicar}
+          >
+            <Text style={styles.botaoTexto}>Publicar</Text>
+          </LinearGradient>
+        </TouchableOpacity>
 
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
