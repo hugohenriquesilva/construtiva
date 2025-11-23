@@ -1,12 +1,14 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   TextInput,
-  View,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 export default function meuPortfolio() {
@@ -18,6 +20,25 @@ export default function meuPortfolio() {
   const [descricao, setDescricao] = useState("");
   const [azul, setAzul] = useState(false);
 
+  useEffect(() => {
+  async function carregarDados() {
+    const dadosSalvos = await AsyncStorage.getItem("@meuPortfolio");
+
+    if (dadosSalvos) {
+      const obj = JSON.parse(dadosSalvos);
+      setArea(obj.area);
+      setCidade(obj.cidade);
+      setBairro(obj.bairro);
+      setDisponibilidade(obj.disponibilidade);
+      setClt(obj.clt);
+      setDescricao(obj.descricao);
+    }
+  }
+
+  carregarDados();
+  }, []);
+
+
   function workClt() {
     if (clt == false) {
       setClt(true);
@@ -26,17 +47,47 @@ export default function meuPortfolio() {
     }
   }
 
+  async function publicar() {
+  if (!area || !cidade || !bairro || !disponibilidade || !descricao) {
+    alert("Preencha todos os campos antes de publicar!");
+    return;
+  }
+
+  const dadosPortfolio = {
+    area,
+    cidade,
+    bairro,
+    disponibilidade,
+    clt,
+    descricao,
+  };
+
+    try {
+      await AsyncStorage.setItem(
+        "@meuPortfolio",
+        JSON.stringify(dadosPortfolio)
+      );
+
+      alert("Portfólio salvo com sucesso!");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao salvar o portfólio.");
+    }
+  }
+
+
   return (
     <ScrollView
       style={[styles.container, clt && { backgroundColor: "#97b8ffff" }]}
     >
       <Text style={styles.title}>Meu Portfólio</Text>
-      {/* Área */}
+
+      {/* Área de atuação */}
       <Text style={styles.label}>Selecionar área de atuação:</Text>
       <View style={styles.inputSelect}>
         <Picker
-          selectedValue={area}
-          onValueChange={(v) => setArea(v)}
+          selectedValue={area} 
+          onValueChange={(v) => setArea(v)} 
           style={styles.picker}
         >
           <Picker.Item label="Selecione" value="" />
@@ -103,6 +154,11 @@ export default function meuPortfolio() {
         value={descricao}
         onChangeText={setDescricao}
       />
+
+      <TouchableOpacity style={styles.botaoPublicar} onPress={publicar}>
+      <Text style={styles.botaoTexto}>Publicar</Text>
+      </TouchableOpacity>
+
     </ScrollView>
   );
 }
@@ -173,5 +229,13 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
+  },
+
+  botaoPublicar: {
+    backgroundColor: "#6A00D7",
+    marginTop: 25,
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: "center",
   },
 });

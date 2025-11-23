@@ -11,12 +11,12 @@ export function ModalMostraContato({ handleClose }) {
         <View style={styles.content}>
           <View style={styles.row}>
             <Text style={styles.label}>E-mail:</Text>
-            <Text style={styles.value}>email do manuel</Text>
+            <Text style={styles.value}>email do profissional</Text>
           </View>
 
           <View style={styles.row}>
             <Text style={styles.label}>Tel:</Text>
-            <Text style={styles.value}>telefone do manuel</Text>
+            <Text style={styles.value}>telefone do profissional</Text>
           </View>
         </View>
 

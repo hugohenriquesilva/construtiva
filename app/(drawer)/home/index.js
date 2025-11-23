@@ -35,8 +35,6 @@ export default function Home() {
         </View>
       </View>
 
-      class 
-
       {/* Card 1 */}
       <View style={styles.card}>
         <Text style={styles.cardName}>José Antônio Barbosa</Text>
@@ -96,7 +94,7 @@ export default function Home() {
           <Text style={styles.infoValue}>Mediante agendamento</Text>
         </View>
 
-        <TouchableOpacity style={styles.button}>
+        <TouchableOpacity style={styles.button} onPress={Conversar}>
           <Text style={styles.buttonText}>Conversar</Text>
         </TouchableOpacity>
       </View>
