@@ -57,7 +57,7 @@ useEffect(() => {
           setDisponibilidade(ultimo.disponibilidade || "");
           setDescricao(ultimo.descricao || "");
           setClt(!!ultimo.clt);
-          setAzul(!!ultimo.clt);
+          setAzul(!!ultimo.azul);
         }
       }
     } catch (error) {
@@ -97,6 +97,7 @@ async function publicar() {
     disponibilidade,
     descricao,
     clt,
+    azul,
   };
 
   try {
