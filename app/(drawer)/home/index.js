@@ -1,19 +1,21 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "expo-router";
+import {ModalMostraContato} from "../../../src/components/mostraContato";
 import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  Modal
 } from "react-native";
 
 export default function Home() {
   const [filtrosProfissional, setFiltrosProfissional] = useState([]);
   const [filtrosLocalizacao, setFiltrosLocalizacao] = useState([]);
-
+  const [contatoSelecionado, setContatoSelecionado] = useState({email: "", telefone: ""});
   const [profissionalSelecionado, setProfissionalSelecionado] = useState("");
   const [localizacaoSelecionada, setLocalizacaoSelecionada] = useState("");
 
@@ -48,9 +50,13 @@ export default function Home() {
   return unsubscribe;
 }, [navigation]);
 
-  function Conversar() {
-    setModalVisible(true); //abri um modal que foi importado previamente
+  function Conversar(email, telefone) {
+      setContatoSelecionado({email, telefone});
+      setModalVisible(true); //abri um modal que foi importado previamente
   }
+    function fecharModal() {
+        setModalVisible(false);
+    }
 
     const cardsFiltrados = cards.filter((item) => {
     return (
@@ -62,6 +68,7 @@ export default function Home() {
   });
 
   return (
+    <>
     <ScrollView
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 50 }}
@@ -165,13 +172,30 @@ export default function Home() {
             </View>
           )}
 
-          <TouchableOpacity style={styles.button} onPress={Conversar}>
-            <Text style={styles.buttonText}>Conversar</Text>
-          </TouchableOpacity>
+      <TouchableOpacity
+          style={styles.button}
+          onPress={() => Conversar(item.email, item.telefone)}
+      >
+          <Text style={styles.buttonText}>Conversar</Text>
+      </TouchableOpacity>
 
         </View>
       ))}
     </ScrollView>
+
+    <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={fecharModal}
+    >
+        <ModalMostraContato
+            handleClose={fecharModal}
+            email={contatoSelecionado.email}
+            telefone={contatoSelecionado.telefone}
+         />
+        </Modal>
+    </>
   );
 }
 

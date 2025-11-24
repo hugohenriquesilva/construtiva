@@ -16,8 +16,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import MaskInput from "react-native-mask-input/src/MaskInput";
 
-export default function meuPortfolio() {
+export default function MeuPortfolio() {
   const [nome, setNome] = useState("");
   const [area, setArea] = useState("");
   const [cidade, setCidade] = useState("");
@@ -26,6 +27,8 @@ export default function meuPortfolio() {
   const [clt, setClt] = useState(false);
   const [descricao, setDescricao] = useState("");
   const [azul, setAzul] = useState(false);
+  const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
   const corFundo = azul ? "#c4d4e2ff" : "#FFF";
   const [menuAberto, setMenuAberto] = useState(false);
   const [temPortfolio, setTemPortfolio] = useState(false);
@@ -49,6 +52,8 @@ useEffect(() => {
           setArea(ultimo.area || "");
           setCidade(ultimo.cidade || "");
           setBairro(ultimo.bairro || "");
+          setEmail(ultimo.email || "");
+          setTelefone(ultimo.telefone || "");
           setDisponibilidade(ultimo.disponibilidade || "");
           setDescricao(ultimo.descricao || "");
           setClt(!!ultimo.clt);
@@ -87,6 +92,8 @@ async function publicar() {
     area,
     cidade,
     bairro,
+    email,
+    telefone,
     disponibilidade,
     descricao,
     clt,
@@ -148,6 +155,8 @@ async function publicar() {
       setArea("");
       setCidade("");
       setBairro("");
+      setEmail("");
+      setTelefone("");
       setDisponibilidade("");
       setClt(false);
       setDescricao("");
@@ -206,6 +215,8 @@ async function publicar() {
       area,
       cidade,
       bairro,
+      email,
+      telefone,
       disponibilidade,
       descricao,
       clt,
@@ -287,6 +298,33 @@ async function publicar() {
             placeholder="Digite seu bairro"
           />
         </View>
+
+          <Text style={styles.label}>E-mail:</Text>
+          <View style={styles.inputText}>
+              <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Digite seu e-mail"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+              />
+          </View>
+
+          <Text style={styles.label}>Telefone:</Text>
+          <View style={styles.inputText}>
+              <MaskInput
+                  value={telefone}
+                  onChangeText={setTelefone}
+                  placeholder="(00) 00000-0000"
+                  keyboardType="phone-pad"
+                  mask={[
+                      '(', /\d/, /\d/, ')', ' ',
+                      /\d/, /\d/, /\d/, /\d/, /\d/, '-',
+                      /\d/, /\d/, /\d/, /\d/
+                  ]}
+                  style={{ fontSize: 16 }}
+              />
+          </View>
 
         {/* Disponibilidade */}
         <Text style={styles.label}>Disponibilidade:</Text>
