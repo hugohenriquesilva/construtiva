@@ -29,6 +29,9 @@ export default function meuPortfolio() {
   const corFundo = azul ? "#c4d4e2ff" : "#FFF";
   const [menuAberto, setMenuAberto] = useState(false);
   const [temPortfolio, setTemPortfolio] = useState(false);
+   const [isEditing, setIsEditing] = useState(false);
+const [editIndex, setEditIndex] = useState(null);
+
 
   useEffect(() => {
     async function carregarLista() {
@@ -53,44 +56,59 @@ export default function meuPortfolio() {
     setAzul(!clt);
   }
 
-  async function publicar() {
-    if (
-      !nome ||
-      !area ||
-      !cidade ||
-      !bairro ||
-      !disponibilidade ||
-      !descricao
-    ) {
-      alert("Preencha todos os campos antes de publicar!");
-      return;
-    }
-
-    const novoCard = {
-      nome,
-      area,
-      cidade,
-      bairro,
-      disponibilidade,
-      descricao,
-      clt,
-    };
-
-    try {
-      const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
-
-      let lista = listaAtual ? JSON.parse(listaAtual) : [];
-
-      lista.push(novoCard);
-
-      await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
-      setTemPortfolio(true);
-      alert("Portfólio publicado com sucesso!");
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao salvar o portfólio.");
-    }
+async function publicar() {
+  if (
+    !nome ||
+    !area ||
+    !cidade ||
+    !bairro ||
+    !disponibilidade ||
+    !descricao
+  ) {
+    alert("Preencha todos os campos antes de publicar!");
+    return;
   }
+
+  const novoCard = {
+    nome,
+    area,
+    cidade,
+    bairro,
+    disponibilidade,
+    descricao,
+    clt,
+  };
+
+  try {
+    const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
+    let lista = listaAtual ? JSON.parse(listaAtual) : [];
+
+    if (!Array.isArray(lista)) {
+      lista = [];
+    }
+
+    if (isEditing && editIndex !== null) {
+      // ATUALIZA o item existente
+      lista[editIndex] = novoCard;
+      alert("Portfólio atualizado com sucesso!");
+    } else {
+      // CRIA um novo portfólio
+      lista.push(novoCard);
+      alert("Portfólio publicado com sucesso!");
+    }
+
+    await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
+    setTemPortfolio(true);
+
+    // limpa estado de edição
+    setIsEditing(false);
+    setEditIndex(null);
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao salvar o portfólio.");
+  }
+}
+
   async function excluir() {
     try {
       const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
@@ -147,6 +165,43 @@ export default function meuPortfolio() {
       ]
     );
   }
+//Função Atualiar/
+  async function atualizar() {
+  try {
+    const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
+    if (!listaAtual) {
+      alert("Nenhum portfólio encontrado para atualizar.");
+      return;
+    }
+
+    const lista = JSON.parse(listaAtual);
+
+    if (!Array.isArray(lista) || lista.length === 0) {
+      alert("Nenhum portfólio encontrado para atualizar.");
+      return;
+    }
+
+    const index = lista.length - 1; // último portfólio
+    const ultimoPortfolio = lista[index];
+
+    setNome(ultimoPortfolio.nome);
+    setArea(ultimoPortfolio.area);
+    setCidade(ultimoPortfolio.cidade);
+    setBairro(ultimoPortfolio.bairro);
+    setDisponibilidade(ultimoPortfolio.disponibilidade);
+    setDescricao(ultimoPortfolio.descricao);
+    setClt(ultimoPortfolio.clt);
+    setAzul(ultimoPortfolio.clt);
+
+    setIsEditing(true);
+    setEditIndex(index);
+
+    alert("Agora você pode atualizar os seus dados!");
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao carregar o portfólio.");
+  }
+}
 
   function opcoes() {
     if (!temPortfolio) return; // não faz nada se ainda não publicou
@@ -259,7 +314,7 @@ export default function meuPortfolio() {
       {menuAberto && (
         <View style={styles.containerAcoes}>
           {/* Botão Atualizar */}
-          <TouchableOpacity style={styles.botaoAcao}>
+          <TouchableOpacity style={styles.botaoAcao} onPress={atualizar}>
             <LinearGradient
               colors={["#5B69A3", "#D26E38"]}
               start={{ x: 0, y: 0 }}
