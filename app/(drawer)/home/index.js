@@ -80,7 +80,7 @@ export default function Home() {
               onValueChange={(value) => setProfissionalSelecionado(value)}
               style={{ width: "100%" }}
             >
-              <Picker.Item label="Profissional ▼" value="" />
+              <Picker.Item label="Profissional" value="" />
 
               {filtrosProfissional.map((prof, index) => (
                 <Picker.Item key={index} label={prof} value={prof} />
@@ -95,7 +95,7 @@ export default function Home() {
               onValueChange={(value) => setLocalizacaoSelecionada(value)}
               style={{ width: "100%" }}
             >
-              <Picker.Item label="Localização ▼" value="" />
+              <Picker.Item label="Localização" value="" />
 
               {filtrosLocalizacao.map((loc, index) => (
                 <Picker.Item key={index} label={loc} value={loc} />
@@ -107,38 +107,45 @@ export default function Home() {
 
 
       {/* Cards Dinâmicos e Filtrados */}
-      {cardsFiltrados.map((item, index) => (
-        <View key={index} style={styles.card}>
+   {cardsFiltrados.map((item, index) => (
+  <View key={index} style={styles.card}>
 
-          <Text style={styles.cardName}>{item.nome}</Text>
-          
-          {/* Badge CLT (somente se for true) */}
-          {item.clt && (
-            <View style={styles.badgeCLT}>
-              <Text style={styles.badgeText}>CLT</Text>
-            </View>
-          )}
+    {/* Nome dentro da “pill” cinza */}
+    <View style={styles.topBox}>
+      <Text style={styles.cardName}>{item.nome}</Text>
+    </View>
+    
+    {/* Badge CLT (somente se for true) */}
+    {item.clt && (
+      <View style={styles.badgeCLT}>
+        <Text style={styles.badgeText}>CLT</Text>
+      </View>
+    )}
 
-          <Text style={styles.cardProfissional}>Profissional</Text>
+    {/* Profissão também dentro de “pill” */}
+    <View style={styles.topBox}>
+      <Text style={styles.cardRole}>{item.area}</Text>
+    </View>
 
-          <Text style={styles.cardRole}>{item.area}</Text>
 
           <Text style={styles.sectionLabel}>Descrição:</Text>
           <View style={styles.descriptionBox}>
             <Text style={styles.descriptionText}>{item.descricao}</Text>
           </View>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Local:</Text>
+         <View style={styles.infoRow}>
+  <Text style={styles.infoLabel}>Local:</Text>
 
-            <View style={styles.infoValueBox}>
-              <Text style={styles.infoValue}>{item.bairro}</Text>
-            </View>
+  <View style={styles.infoLocalRow}>
+    <View style={styles.infoValueBox}>
+      <Text style={styles.infoValue}>{item.bairro}</Text>
+    </View>
 
-            <View style={styles.infoValueBox}>
-              <Text style={styles.infoValue}>{item.cidade}</Text>
-            </View>
-          </View>
+    <View style={styles.infoValueBox}>
+      <Text style={styles.infoValue}>{item.cidade}</Text>
+    </View>
+  </View>
+</View>
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Disponibilidade:</Text>
@@ -213,17 +220,40 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
 
-  cardName: { fontSize: 20, fontWeight: "600", textAlign: "center", fontFamily: "Jua", marginBottom: 7},
-  cardProfissional: { fontSize: 18, fontWeight: "600", textAlign: "center", fontFamily: "Jua" },
-  cardRole: { fontSize: 17, textAlign: "center", marginBottom: 10, fontFamily: "Jua" },
+ cardName: {
+  fontSize: 18,
+  fontWeight: "600",
+  textAlign: "center",
+  fontFamily: "Jua",
+},
+
+
+cardRole: {
+  fontSize: 16,
+  textAlign: "center",
+  marginBottom: 10,
+  fontFamily: "Jua",
+},
+topBox: {
+  alignSelf: "center",
+  backgroundColor: "#f0f0f0", // cinza clarinho
+  borderRadius: 24,
+  paddingVertical: 8,
+  paddingHorizontal: 24,
+  marginBottom: 8,
+  width: "90%",          
+  alignItems: "center",  
+
+},
 
   sectionLabel: {
     fontWeight: "600",
     color: "#5b69a3",
     marginBottom: 5,
     marginTop: 5,
-    fontFamily: "Jua",
+    //fontFamily: "Jua",
     fontSize: 16,
+      textAlign: "center",   
   },
 
   descriptionBox: {
@@ -235,26 +265,42 @@ const styles = StyleSheet.create({
   },
   descriptionText: { fontSize: 14, color: "#444" },
 
-  infoRow: { flexDirection: "row", alignItems: "center", marginBottom: 5 },
-  infoLabel: { fontWeight: "600", marginRight: 5, color: "#5B69A3",fontFamily: "Jua", fontSize: 16 },
+  infoRow: {
+  marginBottom: 8,
+  flexWrap: "wrap",
+},
+infoLabel: {
+  fontWeight: "600",
+  color: "#5B69A3",
+  fontFamily: "Jua",
+  fontSize: 16,
+  marginBottom: 4,
+  width: "100%",     
+},
   
-  infoBox: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginRight: 10,
-  },
+ infoBox: {
+  backgroundColor: "#fff",
+  paddingHorizontal: 14,
+  paddingVertical: 6,
+  borderRadius: 12,
+  marginRight: 8,
+  marginBottom: 4,
+  borderWidth: 1,
+  borderColor: "#e0e0e0",
+},
 
-  infoValueBox: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
+
+ infoValueBox: {
+  backgroundColor: "#fff",
+  paddingHorizontal: 14,
+  paddingVertical: 6,
+  borderRadius: 12,
+  marginRight: 8,
+  marginBottom: 4,
+  borderWidth: 1,
+  borderColor: "#e0e0e0",
+},
+
   infoValue: {
     color: "#333",
     fontSize: 14,
@@ -283,5 +329,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Jua",
   },
+  infoLocalRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 10,
+},
+
 
 });
