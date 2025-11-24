@@ -1,7 +1,7 @@
 import MaskedView from "@react-native-masked-view/masked-view";
 import { DrawerContentScrollView, DrawerItemList } from "@react-navigation/drawer";
 import { LinearGradient } from "expo-linear-gradient";
-import { Image, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 export function CustomDrawerContent(props) {
   return (
@@ -16,10 +16,7 @@ export function CustomDrawerContent(props) {
         }}
       >
 
-        <Image
-          source={require('../assets/images/logo.png')}
-          style={{ width: 40, height: 40, marginRight: 10, resizeMode: "contain" }}
-        />
+      
 
         <MaskedView
           maskElement={

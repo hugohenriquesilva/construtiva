@@ -33,93 +33,121 @@ export default function MeuPortfolio() {
   const [menuAberto, setMenuAberto] = useState(false);
   const [temPortfolio, setTemPortfolio] = useState(false);
 
+  // lista de portfólios salvos (para usar depois em listar/procurar profissionais)
+  const [listaCards, setListaCards] = useState([]);
 
-useEffect(() => {
-  async function carregarLista() {
-    try {
-      const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
-
-      if (listaAtual) {
-        const lista = JSON.parse(listaAtual);
-
-        if (Array.isArray(lista) && lista.length > 0) {
-          setTemPortfolio(true);
-
-          // carrega o ÚLTIMO portfólio nos campos da tela
-          const ultimo = lista[lista.length - 1];
-
-          setNome(ultimo.nome || "");
-          setArea(ultimo.area || "");
-          setCidade(ultimo.cidade || "");
-          setBairro(ultimo.bairro || "");
-          setEmail(ultimo.email || "");
-          setTelefone(ultimo.telefone || "");
-          setDisponibilidade(ultimo.disponibilidade || "");
-          setDescricao(ultimo.descricao || "");
-          setClt(!!ultimo.clt);
-          setAzul(!!ultimo.clt);
-        }
-      }
-    } catch (error) {
-      console.error(error);
-    }
+  // Preenche o formulário com base em um card
+  function preencherCampos(card) {
+    setNome(card.nome || "");
+    setArea(card.area || "");
+    setCidade(card.cidade || "");
+    setBairro(card.bairro || "");
+    setEmail(card.email || "");
+    setTelefone(card.telefone || "");
+    setDisponibilidade(card.disponibilidade || "");
+    setDescricao(card.descricao || "");
+    setClt(!!card.clt);
+    setAzul(!!card.clt);
   }
 
-  carregarLista();
-}, []);
+  // Limpa o formulário
+  function limparCampos() {
+    setNome("");
+    setArea("");
+    setCidade("");
+    setBairro("");
+    setEmail("");
+    setTelefone("");
+    setDisponibilidade("");
+    setDescricao("");
+    setClt(false);
+    setAzul(false);
+  }
 
+  useEffect(() => {
+    async function carregarLista() {
+      try {
+        const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
+
+        if (listaAtual) {
+          const lista = JSON.parse(listaAtual);
+
+          if (Array.isArray(lista) && lista.length > 0) {
+            setTemPortfolio(true);
+
+            // Preenche o formulário com o último portfólio salvo
+            const ultimo = lista[lista.length - 1];
+            preencherCampos(ultimo);
+
+            // Guarda todos para possíveis usos futuros (lista de profissionais)
+            setListaCards(lista);
+            return;
+          }
+        }
+
+        // Se não tiver nada salvo
+        setTemPortfolio(false);
+        limparCampos();
+        setListaCards([]);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    carregarLista();
+  }, []);
 
   function workClt() {
     setClt(!clt);
     setAzul(!clt);
   }
 
-async function publicar() {
-  if (
-    !nome ||
-    !area ||
-    !cidade ||
-    !bairro ||
-    !disponibilidade ||
-    !descricao
-  ) {
-    alert("Preencha todos os campos antes de publicar!");
-    return;
-  }
-
-  const novoCard = {
-    nome,
-    area,
-    cidade,
-    bairro,
-    email,
-    telefone,
-    disponibilidade,
-    descricao,
-    clt,
-  };
-
-  try {
-    const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
-    let lista = listaAtual ? JSON.parse(listaAtual) : [];
-
-    if (!Array.isArray(lista)) {
-      lista = [];
+  async function publicar() {
+    if (
+      !nome ||
+      !area ||
+      !cidade ||
+      !bairro ||
+      !disponibilidade ||
+      !descricao
+    ) {
+      alert("Preencha todos os campos antes de publicar!");
+      return;
     }
 
-    // 👉 AGORA SIM: adiciona o novo portfólio na lista
-    lista.push(novoCard);
+    const novoCard = {
+      nome,
+      area,
+      cidade,
+      bairro,
+      email,
+      telefone,
+      disponibilidade,
+      descricao,
+      clt,
+    };
 
-    await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
-    setTemPortfolio(true);
+    try {
+      const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
+      let lista = listaAtual ? JSON.parse(listaAtual) : [];
 
-    alert("Portfólio publicado com sucesso!");
-  } catch (error) {
-    console.error(error);
-    alert("Erro ao salvar o portfólio.");
+      if (!Array.isArray(lista)) {
+        lista = [];
+      }
+
+      // adiciona o novo portfólio na lista
+      lista.push(novoCard);
+
+      await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
+      setTemPortfolio(true);
+      setListaCards(lista);
+
+      alert("Portfólio publicado com sucesso!");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao salvar o portfólio.");
+    }
   }
-}
-
 
   async function excluir() {
     try {
@@ -137,31 +165,22 @@ async function publicar() {
         return;
       }
 
-      // por enquanto vamos excluir o ÚLTIMO portfólio da lista
+      // exclui o último portfólio
       lista.pop();
 
       await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
 
-      // se a lista ficou vazia, desabilita o botão de +
       if (lista.length === 0) {
-        setTemPortfolio(false); // usa o estado que já criamos antes
+        setTemPortfolio(false);
+        limparCampos();
+        setListaCards([]);
+      } else {
+        const novoUltimo = lista[lista.length - 1];
+        preencherCampos(novoUltimo);
+        setListaCards(lista);
       }
 
-      // fecha o menu
       setMenuAberto(false);
-
-      // limpa os campos da tela
-      setNome("");
-      setArea("");
-      setCidade("");
-      setBairro("");
-      setEmail("");
-      setTelefone("");
-      setDisponibilidade("");
-      setClt(false);
-      setDescricao("");
-      setAzul(false);
-
       alert("Portfólio excluído com sucesso!");
     } catch (error) {
       console.error(error);
@@ -179,65 +198,66 @@ async function publicar() {
       ]
     );
   }
-//Função Atualiar/
+
+  // Função Atualizar
   async function atualizar() {
-  if (
-    !nome ||
-    !area ||
-    !cidade ||
-    !bairro ||
-    !disponibilidade ||
-    !descricao
-  ) {
-    alert("Preencha todos os campos antes de atualizar!");
-    return;
-  }
-
-  try {
-    const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
-
-    if (!listaAtual) {
-      alert("Nenhum portfólio encontrado para atualizar.");
+    if (
+      !nome ||
+      !area ||
+      !cidade ||
+      !bairro ||
+      !disponibilidade ||
+      !descricao
+    ) {
+      alert("Preencha todos os campos antes de atualizar!");
       return;
     }
 
-    let lista = JSON.parse(listaAtual);
+    try {
+      const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
 
-    if (!Array.isArray(lista) || lista.length === 0) {
-      alert("Nenhum portfólio encontrado para atualizar.");
-      return;
+      if (!listaAtual) {
+        alert("Nenhum portfólio encontrado para atualizar.");
+        return;
+      }
+
+      let lista = JSON.parse(listaAtual);
+
+      if (!Array.isArray(lista) || lista.length === 0) {
+        alert("Nenhum portfólio encontrado para atualizar.");
+        return;
+      }
+
+      const ultimoIndex = lista.length - 1;
+
+      const cardAtualizado = {
+        nome,
+        area,
+        cidade,
+        bairro,
+        email,
+        telefone,
+        disponibilidade,
+        descricao,
+        clt,
+      };
+
+      
+      lista[ultimoIndex] = cardAtualizado;
+
+      await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
+      setListaCards(lista);
+
+      alert("Portfólio atualizado com sucesso!");
+      setMenuAberto(false);
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao atualizar o portfólio.");
     }
-
-    const ultimoIndex = lista.length - 1;
-
-    const cardAtualizado = {
-      nome,
-      area,
-      cidade,
-      bairro,
-      email,
-      telefone,
-      disponibilidade,
-      descricao,
-      clt,
-    };
-
-    // sobrescreve o último portfólio com os dados atuais
-    lista[ultimoIndex] = cardAtualizado;
-
-    await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
-
-    alert("Portfólio atualizado com sucesso!");
-    setMenuAberto(false);
-  } catch (error) {
-    console.error(error);
-    alert("Erro ao atualizar o portfólio.");
   }
-}
-
 
   function opcoes() {
-    if (!temPortfolio) return; // não faz nada se ainda não publicou
+    if (!temPortfolio) return; 
     setMenuAberto((prev) => !prev);
   }
 
@@ -299,32 +319,46 @@ async function publicar() {
           />
         </View>
 
-          <Text style={styles.label}>E-mail:</Text>
-          <View style={styles.inputText}>
-              <TextInput
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Digite seu e-mail"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-              />
-          </View>
+        {/* E-mail */}
+        <Text style={styles.label}>E-mail:</Text>
+        <View style={styles.inputText}>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Digite seu e-mail"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </View>
 
-          <Text style={styles.label}>Telefone:</Text>
-          <View style={styles.inputText}>
-              <MaskInput
-                  value={telefone}
-                  onChangeText={setTelefone}
-                  placeholder="(00) 00000-0000"
-                  keyboardType="phone-pad"
-                  mask={[
-                      '(', /\d/, /\d/, ')', ' ',
-                      /\d/, /\d/, /\d/, /\d/, /\d/, '-',
-                      /\d/, /\d/, /\d/, /\d/
-                  ]}
-                  style={{ fontSize: 16 }}
-              />
-          </View>
+        {/* Telefone */}
+        <Text style={styles.label}>Telefone:</Text>
+        <View style={styles.inputText}>
+          <MaskInput
+            value={telefone}
+            onChangeText={setTelefone}
+            placeholder="(00) 00000-0000"
+            keyboardType="phone-pad"
+            mask={[
+              "(",
+              /\d/,
+              /\d/,
+              ")",
+              " ",
+              /\d/,
+              /\d/,
+              /\d/,
+              /\d/,
+              /\d/,
+              "-",
+              /\d/,
+              /\d/,
+              /\d/,
+              /\d/,
+            ]}
+            style={{ fontSize: 16 }}
+          />
+        </View>
 
         {/* Disponibilidade */}
         <Text style={styles.label}>Disponibilidade:</Text>
@@ -364,13 +398,15 @@ async function publicar() {
           onChangeText={setDescricao}
         />
       </ScrollView>
+
       {menuAberto && (
         <TouchableOpacity
           style={styles.overlay}
           activeOpacity={1}
-          onPress={() => setMenuAberto(false)} // fecha ao tocar fora
+          onPress={() => setMenuAberto(false)} 
         />
       )}
+
       {menuAberto && (
         <View style={styles.containerAcoes}>
           {/* Botão Atualizar */}
@@ -387,9 +423,7 @@ async function publicar() {
                 color="#fff"
                 style={{ marginRight: 8 }}
               />
-              <Text style={styles.textoAcao} onPress={atualizar}>
-                Atualizar
-              </Text>
+              <Text style={styles.textoAcao}>Atualizar</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -419,7 +453,7 @@ async function publicar() {
       <View style={[styles.linhaBotoes, menuAberto && { opacity: 0.4 }]}>
         <TouchableOpacity onPress={publicar}>
           <LinearGradient
-            colors={["#5B69A3", "#D26E38"]} // esquerda → direita
+            colors={["#5B69A3", "#D26E38"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.botaoPublicar}
@@ -438,8 +472,8 @@ async function publicar() {
           disabled={!temPortfolio}
           style={[
             styles.botaoMais,
-            menuAberto && { opacity: 0.4 }, // efeito quando menu aberto
-            !temPortfolio && styles.botaoMaisDesabilitado, // aparência de desabilitado
+            menuAberto && { opacity: 0.4 }, 
+            !temPortfolio && styles.botaoMaisDesabilitado, 
           ]}
         >
           <LinearGradient
@@ -495,12 +529,10 @@ const styles = StyleSheet.create({
     color: "#333",
     fontSize: 15,
   },
-
   pickerItem: {
     fontSize: 18,
     color: "#555",
   },
-
   switchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -541,18 +573,15 @@ const styles = StyleSheet.create({
     fontFamily: "Jua",
     alignItems: "left",
   },
-
   botaoMais: {
     width: 55,
     height: 55,
     borderRadius: 32,
     overflow: "hidden",
   },
-
   botaoMaisDesabilitado: {
     opacity: 0.4,
   },
-
   degradeMais: {
     width: "100%",
     height: "100%",
@@ -565,13 +594,11 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "flex-end",
   },
-
   botaoAcao: {
-    marginBottom: 8, // espaço entre Atualizar e Excluir
+    marginBottom: 8, 
     borderRadius: 30,
     overflow: "hidden",
   },
-
   degradeAcao: {
     flexDirection: "row",
     alignItems: "center",
@@ -580,7 +607,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 30,
   },
-
   textoAcao: {
     color: "#fff",
     fontSize: 14,
@@ -592,6 +618,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(255,255,255,0.7)", // embaçado
+    backgroundColor: "rgba(255,255,255,0.7)", 
   },
 });
