@@ -1,7 +1,7 @@
-import { FontAwesome5 } from '@expo/vector-icons';
+import { FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
 
 import {
@@ -14,7 +14,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
 export default function meuPortfolio() {
@@ -27,40 +27,44 @@ export default function meuPortfolio() {
   const [descricao, setDescricao] = useState("");
   const [azul, setAzul] = useState(false);
   const corFundo = azul ? "#c4d4e2ff" : "#FFF";
-const [menuAberto, setMenuAberto] = useState(false);
-const [temPortfolio, setTemPortfolio] = useState(false);
+  const [menuAberto, setMenuAberto] = useState(false);
+  const [temPortfolio, setTemPortfolio] = useState(false);
 
-
-useEffect(() => {
-  async function carregarLista() {
-    try {
-      const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
-      if (listaAtual) {
-        const lista = JSON.parse(listaAtual);
-        if (Array.isArray(lista) && lista.length > 0) {
-          setTemPortfolio(true);
+  useEffect(() => {
+    async function carregarLista() {
+      try {
+        const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
+        if (listaAtual) {
+          const lista = JSON.parse(listaAtual);
+          if (Array.isArray(lista) && lista.length > 0) {
+            setTemPortfolio(true);
+          }
         }
+      } catch (error) {
+        console.error(error);
       }
-    } catch (error) {
-      console.error(error);
     }
-  }
 
-  carregarLista();
-}, []);
+    carregarLista();
+  }, []);
 
   function workClt() {
     setClt(!clt);
     setAzul(!clt);
   }
 
-
   async function publicar() {
-    if (!nome || !area || !cidade || !bairro || !disponibilidade || !descricao) {
+    if (
+      !nome ||
+      !area ||
+      !cidade ||
+      !bairro ||
+      !disponibilidade ||
+      !descricao
+    ) {
       alert("Preencha todos os campos antes de publicar!");
       return;
     }
-
 
     const novoCard = {
       nome,
@@ -80,88 +84,85 @@ useEffect(() => {
       lista.push(novoCard);
 
       await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
-setTemPortfolio(true);
+      setTemPortfolio(true);
       alert("Portfólio publicado com sucesso!");
-    
     } catch (error) {
       console.error(error);
       alert("Erro ao salvar o portfólio.");
     }
   }
   async function excluir() {
-  try {
-    const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
+    try {
+      const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
 
-    if (!listaAtual) {
-      alert("Não há portfólios para excluir.");
-      return;
+      if (!listaAtual) {
+        alert("Não há portfólios para excluir.");
+        return;
+      }
+
+      const lista = JSON.parse(listaAtual);
+
+      if (!Array.isArray(lista) || lista.length === 0) {
+        alert("Não há portfólios para excluir.");
+        return;
+      }
+
+      // por enquanto vamos excluir o ÚLTIMO portfólio da lista
+      lista.pop();
+
+      await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
+
+      // se a lista ficou vazia, desabilita o botão de +
+      if (lista.length === 0) {
+        setTemPortfolio(false); // usa o estado que já criamos antes
+      }
+
+      // fecha o menu
+      setMenuAberto(false);
+
+      // limpa os campos da tela
+      setNome("");
+      setArea("");
+      setCidade("");
+      setBairro("");
+      setDisponibilidade("");
+      setClt(false);
+      setDescricao("");
+      setAzul(false);
+
+      alert("Portfólio excluído com sucesso!");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao excluir o portfólio.");
     }
-
-    const lista = JSON.parse(listaAtual);
-
-    if (!Array.isArray(lista) || lista.length === 0) {
-      alert("Não há portfólios para excluir.");
-      return;
-    }
-
-    // por enquanto vamos excluir o ÚLTIMO portfólio da lista
-    lista.pop();
-
-    await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
-
-    // se a lista ficou vazia, desabilita o botão de +
-    if (lista.length === 0) {
-      setTemPortfolio(false);   // usa o estado que já criamos antes
-    }
-
-    // fecha o menu
-    setMenuAberto(false);
-
-    // limpa os campos da tela
-    setNome("");
-    setArea("");
-    setCidade("");
-    setBairro("");
-    setDisponibilidade("");
-    setClt(false);
-    setDescricao("");
-    setAzul(false);
-
-    alert("Portfólio excluído com sucesso!");
-  } catch (error) {
-    console.error(error);
-    alert("Erro ao excluir o portfólio.");
   }
-}
 
-function confirmarExclusao() {
-  Alert.alert(
-    "Confirmar exclusão",
-    "Tem certeza que deseja excluir o seu portfólio?",
-    [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Excluir", style: "destructive", onPress: excluir },
-    ]
-  );
-}
+  function confirmarExclusao() {
+    Alert.alert(
+      "Confirmar exclusão",
+      "Tem certeza que deseja excluir o seu portfólio?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Excluir", style: "destructive", onPress: excluir },
+      ]
+    );
+  }
 
-function opcoes() {
-  if (!temPortfolio) return;           // não faz nada se ainda não publicou
-  setMenuAberto((prev) => !prev);
-}
+  function opcoes() {
+    if (!temPortfolio) return; // não faz nada se ainda não publicou
+    setMenuAberto((prev) => !prev);
+  }
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1,backgroundColor: corFundo }}
+      style={{ flex: 1, backgroundColor: corFundo }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-
       <ScrollView
         style={[styles.container, clt && { backgroundColor: corFundo }]}
         contentContainerStyle={{ paddingBottom: 80 }}
         keyboardShouldPersistTaps="handled"
       >
-
         <Text style={styles.title}></Text>
 
         {/* Nome do Profissional */}
@@ -173,7 +174,6 @@ function opcoes() {
             placeholder="Digite seu nome"
           />
         </View>
-
 
         {/* Área de atuação */}
         <Text style={styles.label}>Área de atuação:</Text>
@@ -241,64 +241,67 @@ function opcoes() {
           style={styles.textArea}
           multiline
           numberOfLines={6}
-          placeholder={
-            `Descreva brevemente seu trabalho. Dica:
+          placeholder={`Descreva brevemente seu trabalho. Dica:
         + Coloque os anos de experiência
         + Coloque serviços relevantes
         + Coloque os serviços que consegue fazer`}
           value={descricao}
           onChangeText={setDescricao}
         />
-      
       </ScrollView>
-{menuAberto && (
-  <TouchableOpacity
-    style={styles.overlay}
-    activeOpacity={1}
-    onPress={() => setMenuAberto(false)} // fecha ao tocar fora
-  />
-)}
-        {menuAberto && (
-  <View style={styles.containerAcoes}>
-    {/* Botão Atualizar */}
-    <TouchableOpacity style={styles.botaoAcao}>
-      <LinearGradient
-        colors={["#5B69A3", "#D26E38"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.degradeAcao}
-      >
-        <FontAwesome5
-          name="sync-alt"
-          size={14}
-          color="#fff"
-          style={{ marginRight: 8 }}
+      {menuAberto && (
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => setMenuAberto(false)} // fecha ao tocar fora
         />
-        <Text style={styles.textoAcao}>Atualizar</Text>
-      </LinearGradient>
-    </TouchableOpacity>
+      )}
+      {menuAberto && (
+        <View style={styles.containerAcoes}>
+          {/* Botão Atualizar */}
+          <TouchableOpacity style={styles.botaoAcao}>
+            <LinearGradient
+              colors={["#5B69A3", "#D26E38"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.degradeAcao}
+            >
+              <FontAwesome5
+                name="sync-alt"
+                size={14}
+                color="#fff"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.textoAcao} onPress={atualizar}>
+                Atualizar
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
 
-    {/* Botão Excluir */}
-    <TouchableOpacity style={styles.botaoAcao} onPress={confirmarExclusao}>
-  <LinearGradient
-    colors={["#5B69A3", "#D26E38"]}
-    start={{ x: 0, y: 0 }}
-    end={{ x: 1, y: 0 }}
-    style={styles.degradeAcao}
-  >
-    <FontAwesome5
-      name="trash-alt"
-      size={14}
-      color="#fff"
-      style={{ marginRight: 8 }}
-    />
-    <Text style={styles.textoAcao}>Excluir</Text>
-  </LinearGradient>
-</TouchableOpacity>
-  </View>
-)}
+          {/* Botão Excluir */}
+          <TouchableOpacity
+            style={styles.botaoAcao}
+            onPress={confirmarExclusao}
+          >
+            <LinearGradient
+              colors={["#5B69A3", "#D26E38"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.degradeAcao}
+            >
+              <FontAwesome5
+                name="trash-alt"
+                size={14}
+                color="#fff"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.textoAcao}>Excluir</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
 
-<View style={[styles.linhaBotoes, menuAberto && { opacity: 0.4 }]}>
+      <View style={[styles.linhaBotoes, menuAberto && { opacity: 0.4 }]}>
         <TouchableOpacity onPress={publicar}>
           <LinearGradient
             colors={["#5B69A3", "#D26E38"]} // esquerda → direita
@@ -307,33 +310,33 @@ function opcoes() {
             style={styles.botaoPublicar}
           >
             <FontAwesome5
-    name="bullhorn"    
-    size={16}
-    color="#fff"
-    style={{ marginRight: 8 }}
-  />
+              name="bullhorn"
+              size={16}
+              color="#fff"
+              style={{ marginRight: 8 }}
+            />
             <Text style={styles.botaoTexto}>Publicar</Text>
           </LinearGradient>
         </TouchableOpacity>
-      <TouchableOpacity
-  onPress={opcoes}
-  disabled={!temPortfolio} 
-  style={[
-    styles.botaoMais,
-    menuAberto && { opacity: 0.4 },      // efeito quando menu aberto
-    !temPortfolio && styles.botaoMaisDesabilitado, // aparência de desabilitado
-  ]}
->
-  <LinearGradient
-    colors={["#5B69A3", "#D26E38"]}
-    start={{ x: 0, y: 0 }}
-    end={{ x: 1, y: 0 }}
-    style={styles.degradeMais}
-  >
-   <FontAwesome5 name="plus" size={38} color="#fff" />
-  </LinearGradient>
-</TouchableOpacity>
-</View>
+        <TouchableOpacity
+          onPress={opcoes}
+          disabled={!temPortfolio}
+          style={[
+            styles.botaoMais,
+            menuAberto && { opacity: 0.4 }, // efeito quando menu aberto
+            !temPortfolio && styles.botaoMaisDesabilitado, // aparência de desabilitado
+          ]}
+        >
+          <LinearGradient
+            colors={["#5B69A3", "#D26E38"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.degradeMais}
+          >
+            <FontAwesome5 name="plus" size={38} color="#fff" />
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -400,21 +403,21 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   linhaBotoes: {
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-  width: "100%",
-  marginTop: 25,
-   marginBottom: 32,
-  paddingHorizontal: 18, 
-},
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    marginTop: 25,
+    marginBottom: 32,
+    paddingHorizontal: 18,
+  },
   botaoPublicar: {
     flexDirection: "row",
     paddingVertical: 14,
     paddingHorizontal: 65,
     borderRadius: 30,
     alignItems: "center",
-   justifyContent: "center",
+    justifyContent: "center",
   },
   botaoTexto: {
     color: "#fff",
@@ -423,60 +426,57 @@ const styles = StyleSheet.create({
     fontFamily: "Jua",
     alignItems: "left",
   },
-  
+
   botaoMais: {
-  width: 55,
-  height: 55,
-  borderRadius: 32,
-  overflow: "hidden",
-  
-},
+    width: 55,
+    height: 55,
+    borderRadius: 32,
+    overflow: "hidden",
+  },
 
-botaoMaisDesabilitado: {
-  opacity: 0.4,
-},
+  botaoMaisDesabilitado: {
+    opacity: 0.4,
+  },
 
-degradeMais: {
-  width: "100%",
-  height: "100%",
-   borderRadius: 32,
-  justifyContent: "center",
-  alignItems: "center",
-},
-containerAcoes: {
-  marginTop: 20,
-  width: "100%",
-  alignItems: "flex-end",  
-},
+  degradeMais: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  containerAcoes: {
+    marginTop: 20,
+    width: "100%",
+    alignItems: "flex-end",
+  },
 
-botaoAcao: {
-  marginBottom: 8,         // espaço entre Atualizar e Excluir
-  borderRadius: 30,
-  overflow: "hidden",
-},
+  botaoAcao: {
+    marginBottom: 8, // espaço entre Atualizar e Excluir
+    borderRadius: 30,
+    overflow: "hidden",
+  },
 
-degradeAcao: {
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  paddingVertical: 8,
-  paddingHorizontal: 20,
-  borderRadius: 30,
-},
+  degradeAcao: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+  },
 
-textoAcao: {
-  color: "#fff",
-  fontSize: 14,
-  fontWeight: "700",
-},
-overlay: {
-  position: "absolute",
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: "rgba(255,255,255,0.7)", // embaçado
-},
-
-
+  textoAcao: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255,255,255,0.7)", // embaçado
+  },
 });
