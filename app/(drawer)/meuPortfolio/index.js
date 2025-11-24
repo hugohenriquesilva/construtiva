@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
 import { LinearGradient } from 'expo-linear-gradient';
+import MaskInput from 'react-native-mask-input';
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -191,11 +192,17 @@ export default function MeuPortfolio() {
 
           <Text style={styles.label}>telefone para contato:</Text>
           <View style={styles.inputText}>
-              <TextInput
+              <MaskInput
                   value={telefone}
                   onChangeText={setTelefone}
-                  placeholder="Digite seu telefone"
+                  placeholder="(00) 00000-0000"
                   keyboardType="phone-pad"
+                  mask={[
+                      '(', /\d/, /\d/, ')', ' ',
+                      /\d/, /\d/, /\d/, /\d/, /\d/, '-',
+                      /\d/, /\d/, /\d/, /\d/
+                  ]}
+                  style={{ fontSize: 16 }}
               />
           </View>
 
