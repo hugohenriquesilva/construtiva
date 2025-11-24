@@ -29,27 +29,40 @@ export default function meuPortfolio() {
   const corFundo = azul ? "#c4d4e2ff" : "#FFF";
   const [menuAberto, setMenuAberto] = useState(false);
   const [temPortfolio, setTemPortfolio] = useState(false);
-   const [isEditing, setIsEditing] = useState(false);
-const [editIndex, setEditIndex] = useState(null);
 
 
-  useEffect(() => {
-    async function carregarLista() {
-      try {
-        const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
-        if (listaAtual) {
-          const lista = JSON.parse(listaAtual);
-          if (Array.isArray(lista) && lista.length > 0) {
-            setTemPortfolio(true);
-          }
+useEffect(() => {
+  async function carregarLista() {
+    try {
+      const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
+
+      if (listaAtual) {
+        const lista = JSON.parse(listaAtual);
+
+        if (Array.isArray(lista) && lista.length > 0) {
+          setTemPortfolio(true);
+
+          // carrega o ÚLTIMO portfólio nos campos da tela
+          const ultimo = lista[lista.length - 1];
+
+          setNome(ultimo.nome || "");
+          setArea(ultimo.area || "");
+          setCidade(ultimo.cidade || "");
+          setBairro(ultimo.bairro || "");
+          setDisponibilidade(ultimo.disponibilidade || "");
+          setDescricao(ultimo.descricao || "");
+          setClt(!!ultimo.clt);
+          setAzul(!!ultimo.clt);
         }
-      } catch (error) {
-        console.error(error);
       }
+    } catch (error) {
+      console.error(error);
     }
+  }
 
-    carregarLista();
-  }, []);
+  carregarLista();
+}, []);
+
 
   function workClt() {
     setClt(!clt);
@@ -87,27 +100,19 @@ async function publicar() {
       lista = [];
     }
 
-    if (isEditing && editIndex !== null) {
-      // ATUALIZA o item existente
-      lista[editIndex] = novoCard;
-      alert("Portfólio atualizado com sucesso!");
-    } else {
-      // CRIA um novo portfólio
-      lista.push(novoCard);
-      alert("Portfólio publicado com sucesso!");
-    }
+    // 👉 AGORA SIM: adiciona o novo portfólio na lista
+    lista.push(novoCard);
 
     await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
     setTemPortfolio(true);
 
-    // limpa estado de edição
-    setIsEditing(false);
-    setEditIndex(null);
+    alert("Portfólio publicado com sucesso!");
   } catch (error) {
     console.error(error);
     alert("Erro ao salvar o portfólio.");
   }
 }
+
 
   async function excluir() {
     try {
@@ -167,41 +172,58 @@ async function publicar() {
   }
 //Função Atualiar/
   async function atualizar() {
+  if (
+    !nome ||
+    !area ||
+    !cidade ||
+    !bairro ||
+    !disponibilidade ||
+    !descricao
+  ) {
+    alert("Preencha todos os campos antes de atualizar!");
+    return;
+  }
+
   try {
     const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
+
     if (!listaAtual) {
       alert("Nenhum portfólio encontrado para atualizar.");
       return;
     }
 
-    const lista = JSON.parse(listaAtual);
+    let lista = JSON.parse(listaAtual);
 
     if (!Array.isArray(lista) || lista.length === 0) {
       alert("Nenhum portfólio encontrado para atualizar.");
       return;
     }
 
-    const index = lista.length - 1; // último portfólio
-    const ultimoPortfolio = lista[index];
+    const ultimoIndex = lista.length - 1;
 
-    setNome(ultimoPortfolio.nome);
-    setArea(ultimoPortfolio.area);
-    setCidade(ultimoPortfolio.cidade);
-    setBairro(ultimoPortfolio.bairro);
-    setDisponibilidade(ultimoPortfolio.disponibilidade);
-    setDescricao(ultimoPortfolio.descricao);
-    setClt(ultimoPortfolio.clt);
-    setAzul(ultimoPortfolio.clt);
+    const cardAtualizado = {
+      nome,
+      area,
+      cidade,
+      bairro,
+      disponibilidade,
+      descricao,
+      clt,
+    };
 
-    setIsEditing(true);
-    setEditIndex(index);
+    // sobrescreve o último portfólio com os dados atuais
+    lista[ultimoIndex] = cardAtualizado;
 
-    alert("Agora você pode atualizar os seus dados!");
+    await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
+
+    alert("Portfólio atualizado com sucesso!");
+    setMenuAberto(false);
   } catch (error) {
     console.error(error);
-    alert("Erro ao carregar o portfólio.");
+    alert("Erro ao atualizar o portfólio.");
   }
 }
+
 
   function opcoes() {
     if (!temPortfolio) return; // não faz nada se ainda não publicou
