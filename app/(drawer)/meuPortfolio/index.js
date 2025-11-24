@@ -13,6 +13,9 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useEffect } from "react";
+import { useRouter } from "expo-router";
+
 
 export default function meuPortfolio() {
   const [nome, setNome] = useState("");
@@ -24,12 +27,41 @@ export default function meuPortfolio() {
   const [descricao, setDescricao] = useState("");
   const [azul, setAzul] = useState(false);
   const corFundo = azul ? "#c4d4e2ff" : "#FFF";
+  const [isEditing, setIsEditing] = useState(false);
+  const router = useRouter();
 
   function workClt() {
     setClt(!clt);
     setAzul(!clt);
   }
 
+  /* Função para carregar informações não editáveis no formulário */
+  useEffect(() => {
+    async function carregarPortfolio() {
+      try {
+        const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
+        if (listaAtual) {
+          const lista = JSON.parse(listaAtual);
+          const ultimo = lista[lista.length - 1];
+
+          setNome(ultimo.nome);
+          setArea(ultimo.area);
+          setCidade(ultimo.cidade);
+          setBairro(ultimo.bairro);
+          setDisponibilidade(ultimo.disponibilidade);
+          setDescricao(ultimo.descricao);
+          setClt(ultimo.clt);
+          setAzul(ultimo.clt);
+
+          setIsEditing(false); // 👈 desabilita a edição ao abrir
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    carregarPortfolio();
+  }, []);
 
   async function publicar() {
     if (!nome || !area || !cidade || !bairro || !disponibilidade || !descricao) {
@@ -49,14 +81,20 @@ export default function meuPortfolio() {
 
     try {
       const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
-
       let lista = listaAtual ? JSON.parse(listaAtual) : [];
 
-      lista.push(novoCard);
+      if (lista.length > 0) {
+        // 🔁 Atualiza o último portfólio existente
+        lista[lista.length - 1] = novoCard;
+      } else {
+        // 🆕 Se não existir, cria um novo
+        lista.push(novoCard);
+      }
 
       await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
 
-      alert("Portfólio publicado com sucesso!");
+      alert("Portfólio atualizado com sucesso!");
+
       // limpar campos após publicar
       setNome("");
       setArea("");
@@ -70,7 +108,43 @@ export default function meuPortfolio() {
       console.error(error);
       alert("Erro ao salvar o portfólio.");
     }
+
+    router.push("/");
   }
+
+
+
+  /*Função Atualiar*/
+  async function atualizar() {
+    try {
+      const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
+      if (!listaAtual) {
+        alert("Nenhum portfólio encontrado para atualizar.");
+        return;
+      }
+
+      const lista = JSON.parse(listaAtual);
+
+      const ultimoPortfolio = lista[lista.length - 1];
+
+      setNome(ultimoPortfolio.nome);
+      setArea(ultimoPortfolio.area);
+      setCidade(ultimoPortfolio.cidade);
+      setBairro(ultimoPortfolio.bairro);
+      setDisponibilidade(ultimoPortfolio.disponibilidade);
+      setDescricao(ultimoPortfolio.descricao);
+      setClt(ultimoPortfolio.clt);
+      setAzul(ultimoPortfolio.clt);
+
+      setIsEditing(true);
+
+      alert("Agora você pode atualizar os seus dados!");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao carregar o portfólio.");
+    }
+  }
+
 
   return (
     <KeyboardAvoidingView
@@ -93,17 +167,19 @@ export default function meuPortfolio() {
             value={nome}
             onChangeText={setNome}
             placeholder="Digite seu nome"
+            editable={isEditing}
           />
         </View>
 
 
         {/* Área de atuação */}
         <Text style={styles.label}>Área de atuação:</Text>
-        <View style={styles.inputSelect}>
+        <View style={styles.inputSelect} >
           <Picker
             selectedValue={area}
             onValueChange={(v) => setArea(v)}
             style={styles.picker}
+            enabled={isEditing}
           >
             <Picker.Item label="Selecione sua área profissional" value="" />
             <Picker.Item label="Pedreiro" value="Pedreiro" />
@@ -120,6 +196,7 @@ export default function meuPortfolio() {
             value={cidade}
             onChangeText={setCidade}
             placeholder="Digite sua cidade"
+            editable={isEditing}
           />
         </View>
 
@@ -130,6 +207,7 @@ export default function meuPortfolio() {
             value={bairro}
             onChangeText={setBairro}
             placeholder="Digite seu bairro"
+            editable={isEditing}
           />
         </View>
 
@@ -141,6 +219,7 @@ export default function meuPortfolio() {
             onValueChange={(v) => setDisponibilidade(v)}
             style={styles.picker}
             itemStyle={styles.pickerItem}
+            enabled={isEditing}
           >
             <Picker.Item label="Selecione" value="" />
             <Picker.Item label="Próximos 3 dias" value="Em 3 dias" />
@@ -150,8 +229,14 @@ export default function meuPortfolio() {
           </Picker>
         </View>
 
-        <View style={styles.switchContainer}>
-          <Switch value={clt} onValueChange={workClt} />
+        <View
+          style={[
+            styles.switchContainer,
+            !isEditing && { opacity: 0.5 }
+          ]}
+          pointerEvents={isEditing ? "auto" : "none"}
+        >
+          <Switch value={clt} onValueChange={workClt} enabled={isEditing} />
           <Text style={styles.switchText}>
             Disponível para trabalhar como CLT
           </Text>
@@ -170,6 +255,7 @@ export default function meuPortfolio() {
         + Coloque os serviços que consegue fazer`}
           value={descricao}
           onChangeText={setDescricao}
+          editable={isEditing}
         />
 
         <TouchableOpacity onPress={publicar}>
