@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {ModalMostraContato} from "../../../src/components/mostraContato";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -7,13 +8,14 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  Modal
 } from "react-native";
 
 export default function Home() {
   const [filtrosProfissional, setFiltrosProfissional] = useState([]);
   const [filtrosLocalizacao, setFiltrosLocalizacao] = useState([]);
-
+  const [contatoSelecionado, setContatoSelecionado] = useState({email: "", telefone: ""});
   const [profissionalSelecionado, setProfissionalSelecionado] = useState("");
   const [localizacaoSelecionada, setLocalizacaoSelecionada] = useState("");
 
@@ -48,8 +50,14 @@ export default function Home() {
   return unsubscribe;
 }, [navigation]);
 
-  function Conversar() {
-    setModalVisible(true); //abri um modal que foi importado previamente
+  function Conversar(email, telefone) {
+      setContatoSelecionado({email, telefone});
+      setModalVisible(true);
+    //abri um modal que foi importado previamente
+  }
+
+  function fecharModal() {
+    setModalVisible(false);
   }
 
     const cardsFiltrados = cards.filter((item) => {
@@ -61,111 +69,124 @@ export default function Home() {
     );
   });
 
-  return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 50 }}
-    >
-      <Text style={styles.header}></Text>
-
-      <View style={styles.filterBox}>
-        <Text style={styles.filterText}>Filtre de acordo com a sua necessidade</Text>
-
-        <View style={styles.selectRow}>
-
-          {/* FILTRO PROFISSIONAL */}
-          <View style={styles.select}>
-            <Picker
-              selectedValue={profissionalSelecionado}
-              onValueChange={(value) => setProfissionalSelecionado(value)}
-              style={{ width: "100%" }}
+    return (
+        <>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={{ paddingBottom: 50 }}
             >
-              <Picker.Item label="Profissional ▼" value="" />
+                <Text style={styles.header}></Text>
 
-              {filtrosProfissional.map((prof, index) => (
-                <Picker.Item key={index} label={prof} value={prof} />
-              ))}
-            </Picker>
-          </View>
+                <View style={styles.filterBox}>
+                    <Text style={styles.filterText}>Filtre de acordo com a sua necessidade</Text>
 
-          {/* FILTRO LOCALIZAÇÃO */}
-          <View style={styles.select}>
-            <Picker
-              selectedValue={localizacaoSelecionada}
-              onValueChange={(value) => setLocalizacaoSelecionada(value)}
-              style={{ width: "100%" }}
+                    <View style={styles.selectRow}>
+
+                        <View style={styles.select}>
+                            <Picker
+                                selectedValue={profissionalSelecionado}
+                                onValueChange={(value) => setProfissionalSelecionado(value)}
+                                style={{ width: "100%" }}
+                            >
+                                <Picker.Item label="Profissional ▼" value="" />
+
+                                {filtrosProfissional.map((prof, index) => (
+                                    <Picker.Item key={index} label={prof} value={prof} />
+                                ))}
+                            </Picker>
+                        </View>
+
+                        <View style={styles.select}>
+                            <Picker
+                                selectedValue={localizacaoSelecionada}
+                                onValueChange={(value) => setLocalizacaoSelecionada(value)}
+                                style={{ width: "100%" }}
+                            >
+                                <Picker.Item label="Localização ▼" value="" />
+
+                                {filtrosLocalizacao.map((loc, index) => (
+                                    <Picker.Item key={index} label={loc} value={loc} />
+                                ))}
+                            </Picker>
+                        </View>
+                    </View>
+                </View>
+
+                {cardsFiltrados.map((item, index) => (
+                    <View key={index} style={styles.card}>
+
+                        <Text style={styles.cardName}>{item.nome}</Text>
+
+                        {item.clt && (
+                            <View style={styles.badgeCLT}>
+                                <Text style={styles.badgeText}>CLT</Text>
+                            </View>
+                        )}
+
+                        <Text style={styles.cardProfissional}>Profissional</Text>
+
+                        <Text style={styles.cardRole}>{item.area}</Text>
+
+                        <Text style={styles.sectionLabel}>Descrição:</Text>
+                        <View style={styles.descriptionBox}>
+                            <Text style={styles.descriptionText}>{item.descricao}</Text>
+                        </View>
+
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Local:</Text>
+
+                            <View style={styles.infoValueBox}>
+                                <Text style={styles.infoValue}>{item.bairro}</Text>
+                            </View>
+
+                            <View style={styles.infoValueBox}>
+                                <Text style={styles.infoValue}>{item.cidade}</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Disponibilidade:</Text>
+
+                            <View style={styles.infoBox}>
+                                <Text style={styles.infoValue}>{item.disponibilidade}</Text>
+                            </View>
+                        </View>
+
+                        {item.clt && (
+                            <View style={styles.infoRow}>
+                                <Text style={styles.infoLabel}>Contratação:</Text>
+
+                                <View style={styles.infoBox}>
+                                    <Text style={styles.infoValue}>Disponível para CLT</Text>
+                                </View>
+                            </View>
+                        )}
+
+                        <TouchableOpacity
+                            style={styles.button}
+                            onPress={() => Conversar(item.email, item.telefone)}
+                        >
+                            <Text style={styles.buttonText}>Conversar</Text>
+                        </TouchableOpacity>
+
+                    </View>
+                ))}
+            </ScrollView>
+
+            <Modal
+                visible={modalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={fecharModal}
             >
-              <Picker.Item label="Localização ▼" value="" />
-
-              {filtrosLocalizacao.map((loc, index) => (
-                <Picker.Item key={index} label={loc} value={loc} />
-              ))}
-            </Picker>
-          </View>
-        </View>
-      </View>
-
-
-      {/* Cards Dinâmicos e Filtrados */}
-      {cardsFiltrados.map((item, index) => (
-        <View key={index} style={styles.card}>
-
-          <Text style={styles.cardName}>{item.nome}</Text>
-          
-          {/* Badge CLT (somente se for true) */}
-          {item.clt && (
-            <View style={styles.badgeCLT}>
-              <Text style={styles.badgeText}>CLT</Text>
-            </View>
-          )}
-
-          <Text style={styles.cardProfissional}>Profissional</Text>
-
-          <Text style={styles.cardRole}>{item.area}</Text>
-
-          <Text style={styles.sectionLabel}>Descrição:</Text>
-          <View style={styles.descriptionBox}>
-            <Text style={styles.descriptionText}>{item.descricao}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Local:</Text>
-
-            <View style={styles.infoValueBox}>
-              <Text style={styles.infoValue}>{item.bairro}</Text>
-            </View>
-
-            <View style={styles.infoValueBox}>
-              <Text style={styles.infoValue}>{item.cidade}</Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Disponibilidade:</Text>
-
-            <View style={styles.infoBox}>
-              <Text style={styles.infoValue}>{item.disponibilidade}</Text>
-            </View>
-          </View>
-
-          {item.clt && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Contratação:</Text>
-
-              <View style={styles.infoBox}>
-                <Text style={styles.infoValue}>Disponível para CLT</Text>
-              </View>
-            </View>
-          )}
-
-          <TouchableOpacity style={styles.button} onPress={Conversar}>
-            <Text style={styles.buttonText}>Conversar</Text>
-          </TouchableOpacity>
-
-        </View>
-      ))}
-    </ScrollView>
-  );
+                <ModalMostraContato
+                    handleClose={fecharModal}
+                    email={contatoSelecionado.email}
+                    telefone={contatoSelecionado.telefone}
+                />
+            </Modal>
+        </>
+    );
 }
 
 const styles = StyleSheet.create({

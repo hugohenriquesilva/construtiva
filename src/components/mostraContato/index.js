@@ -1,6 +1,6 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-export function ModalMostraContato({ handleClose }) {
+export function ModalMostraContato({ handleClose, email, telefone }) {
   return (
     <View style={styles.overlay}>
       <View style={styles.box}>
@@ -11,12 +11,12 @@ export function ModalMostraContato({ handleClose }) {
         <View style={styles.content}>
           <View style={styles.row}>
             <Text style={styles.label}>E-mail:</Text>
-            <Text style={styles.value}>email do profissional</Text>
+            <Text style={styles.value}>{email || "Não informado"}</Text>
           </View>
 
           <View style={styles.row}>
             <Text style={styles.label}>Tel:</Text>
-            <Text style={styles.value}>telefone do profissional</Text>
+            <Text style={styles.value}>{telefone || "Não informado"}</Text>
           </View>
         </View>
 

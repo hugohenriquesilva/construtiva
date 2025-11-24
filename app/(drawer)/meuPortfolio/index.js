@@ -14,7 +14,7 @@ import {
   View
 } from "react-native";
 
-export default function meuPortfolio() {
+export default function MeuPortfolio() {
   const [nome, setNome] = useState("");
   const [area, setArea] = useState("");
   const [cidade, setCidade] = useState("");
@@ -23,6 +23,8 @@ export default function meuPortfolio() {
   const [clt, setClt] = useState(false);
   const [descricao, setDescricao] = useState("");
   const [azul, setAzul] = useState(false);
+  const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
   const corFundo = azul ? "#c4d4e2ff" : "#FFF";
 
   function workClt() {
@@ -45,6 +47,8 @@ export default function meuPortfolio() {
       disponibilidade,
       descricao,
       clt,
+      email,
+      telefone,
     };
 
     try {
@@ -65,6 +69,8 @@ export default function meuPortfolio() {
       setDisponibilidade("");
       setClt(false);
       setDescricao("");
+      setEmail("");
+      setTelefone("");
       setAzul(false);
     } catch (error) {
       console.error(error);
@@ -172,6 +178,28 @@ export default function meuPortfolio() {
           onChangeText={setDescricao}
         />
 
+          <Text style={styles.label}>E-mail para contato:</Text>
+          <View style={styles.inputText}>
+              <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Digite seu e-mail"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+              />
+          </View>
+
+          <Text style={styles.label}>telefone para contato:</Text>
+          <View style={styles.inputText}>
+              <TextInput
+                  value={telefone}
+                  onChangeText={setTelefone}
+                  placeholder="Digite seu telefone"
+                  keyboardType="phone-pad"
+              />
+          </View>
+
+          <Text style={styles.label}>Descrição do seu trabalho:</Text>
         <TouchableOpacity onPress={publicar}>
           <LinearGradient
             colors={["#5B69A3", "#D26E38"]} // esquerda → direita
