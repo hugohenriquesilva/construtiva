@@ -1,9 +1,11 @@
+import { FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
-import { LinearGradient } from 'expo-linear-gradient';
-import MaskInput from 'react-native-mask-input';
-import { useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { useEffect, useState } from "react";
+
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,10 +14,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
-export default function MeuPortfolio() {
+export default function meuPortfolio() {
   const [nome, setNome] = useState("");
   const [area, setArea] = useState("");
   const [cidade, setCidade] = useState("");
@@ -24,45 +26,124 @@ export default function MeuPortfolio() {
   const [clt, setClt] = useState(false);
   const [descricao, setDescricao] = useState("");
   const [azul, setAzul] = useState(false);
-  const [email, setEmail] = useState("");
-  const [telefone, setTelefone] = useState("");
   const corFundo = azul ? "#c4d4e2ff" : "#FFF";
+  const [menuAberto, setMenuAberto] = useState(false);
+  const [temPortfolio, setTemPortfolio] = useState(false);
+
+
+useEffect(() => {
+  async function carregarLista() {
+    try {
+      const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
+
+      if (listaAtual) {
+        const lista = JSON.parse(listaAtual);
+
+        if (Array.isArray(lista) && lista.length > 0) {
+          setTemPortfolio(true);
+
+          // carrega o ÚLTIMO portfólio nos campos da tela
+          const ultimo = lista[lista.length - 1];
+
+          setNome(ultimo.nome || "");
+          setArea(ultimo.area || "");
+          setCidade(ultimo.cidade || "");
+          setBairro(ultimo.bairro || "");
+          setDisponibilidade(ultimo.disponibilidade || "");
+          setDescricao(ultimo.descricao || "");
+          setClt(!!ultimo.clt);
+          setAzul(!!ultimo.clt);
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  carregarLista();
+}, []);
+
 
   function workClt() {
     setClt(!clt);
     setAzul(!clt);
   }
 
+async function publicar() {
+  if (
+    !nome ||
+    !area ||
+    !cidade ||
+    !bairro ||
+    !disponibilidade ||
+    !descricao
+  ) {
+    alert("Preencha todos os campos antes de publicar!");
+    return;
+  }
 
-  async function publicar() {
-    if (!nome || !area || !cidade || !bairro || !disponibilidade || !descricao) {
-      alert("Preencha todos os campos antes de publicar!");
-      return;
+  const novoCard = {
+    nome,
+    area,
+    cidade,
+    bairro,
+    disponibilidade,
+    descricao,
+    clt,
+  };
+
+  try {
+    const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
+    let lista = listaAtual ? JSON.parse(listaAtual) : [];
+
+    if (!Array.isArray(lista)) {
+      lista = [];
     }
 
-    const novoCard = {
-      nome,
-      area,
-      cidade,
-      bairro,
-      disponibilidade,
-      descricao,
-      clt,
-      email,
-      telefone,
-    };
+    // 👉 AGORA SIM: adiciona o novo portfólio na lista
+    lista.push(novoCard);
 
+    await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
+    setTemPortfolio(true);
+
+    alert("Portfólio publicado com sucesso!");
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao salvar o portfólio.");
+  }
+}
+
+
+  async function excluir() {
     try {
       const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
 
-      let lista = listaAtual ? JSON.parse(listaAtual) : [];
+      if (!listaAtual) {
+        alert("Não há portfólios para excluir.");
+        return;
+      }
 
-      lista.push(novoCard);
+      const lista = JSON.parse(listaAtual);
+
+      if (!Array.isArray(lista) || lista.length === 0) {
+        alert("Não há portfólios para excluir.");
+        return;
+      }
+
+      // por enquanto vamos excluir o ÚLTIMO portfólio da lista
+      lista.pop();
 
       await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
 
-      alert("Portfólio publicado com sucesso!");
-      // limpar campos após publicar
+      // se a lista ficou vazia, desabilita o botão de +
+      if (lista.length === 0) {
+        setTemPortfolio(false); // usa o estado que já criamos antes
+      }
+
+      // fecha o menu
+      setMenuAberto(false);
+
+      // limpa os campos da tela
       setNome("");
       setArea("");
       setCidade("");
@@ -70,27 +151,95 @@ export default function MeuPortfolio() {
       setDisponibilidade("");
       setClt(false);
       setDescricao("");
-      setEmail("");
-      setTelefone("");
       setAzul(false);
+
+      alert("Portfólio excluído com sucesso!");
     } catch (error) {
       console.error(error);
-      alert("Erro ao salvar o portfólio.");
+      alert("Erro ao excluir o portfólio.");
     }
+  }
+
+  function confirmarExclusao() {
+    Alert.alert(
+      "Confirmar exclusão",
+      "Tem certeza que deseja excluir o seu portfólio?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Excluir", style: "destructive", onPress: excluir },
+      ]
+    );
+  }
+//Função Atualiar/
+  async function atualizar() {
+  if (
+    !nome ||
+    !area ||
+    !cidade ||
+    !bairro ||
+    !disponibilidade ||
+    !descricao
+  ) {
+    alert("Preencha todos os campos antes de atualizar!");
+    return;
+  }
+
+  try {
+    const listaAtual = await AsyncStorage.getItem("@listaPortfolio");
+
+    if (!listaAtual) {
+      alert("Nenhum portfólio encontrado para atualizar.");
+      return;
+    }
+
+    let lista = JSON.parse(listaAtual);
+
+    if (!Array.isArray(lista) || lista.length === 0) {
+      alert("Nenhum portfólio encontrado para atualizar.");
+      return;
+    }
+
+    const ultimoIndex = lista.length - 1;
+
+    const cardAtualizado = {
+      nome,
+      area,
+      cidade,
+      bairro,
+      disponibilidade,
+      descricao,
+      clt,
+    };
+
+    // sobrescreve o último portfólio com os dados atuais
+    lista[ultimoIndex] = cardAtualizado;
+
+    await AsyncStorage.setItem("@listaPortfolio", JSON.stringify(lista));
+
+    alert("Portfólio atualizado com sucesso!");
+    setMenuAberto(false);
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao atualizar o portfólio.");
+  }
+}
+
+
+  function opcoes() {
+    if (!temPortfolio) return; // não faz nada se ainda não publicou
+    setMenuAberto((prev) => !prev);
   }
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: corFundo }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-
       <ScrollView
         style={[styles.container, clt && { backgroundColor: corFundo }]}
         contentContainerStyle={{ paddingBottom: 80 }}
         keyboardShouldPersistTaps="handled"
       >
-
         <Text style={styles.title}></Text>
 
         {/* Nome do Profissional */}
@@ -102,7 +251,6 @@ export default function MeuPortfolio() {
             placeholder="Digite seu nome"
           />
         </View>
-
 
         {/* Área de atuação */}
         <Text style={styles.label}>Área de atuação:</Text>
@@ -170,43 +318,67 @@ export default function MeuPortfolio() {
           style={styles.textArea}
           multiline
           numberOfLines={6}
-          placeholder={
-            `Descreva brevemente seu trabalho. Dica:
+          placeholder={`Descreva brevemente seu trabalho. Dica:
         + Coloque os anos de experiência
         + Coloque serviços relevantes
         + Coloque os serviços que consegue fazer`}
           value={descricao}
           onChangeText={setDescricao}
         />
-
-          <Text style={styles.label}>E-mail para contato:</Text>
-          <View style={styles.inputText}>
-              <TextInput
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Digite seu e-mail"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
+      </ScrollView>
+      {menuAberto && (
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => setMenuAberto(false)} // fecha ao tocar fora
+        />
+      )}
+      {menuAberto && (
+        <View style={styles.containerAcoes}>
+          {/* Botão Atualizar */}
+          <TouchableOpacity style={styles.botaoAcao} onPress={atualizar}>
+            <LinearGradient
+              colors={["#5B69A3", "#D26E38"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.degradeAcao}
+            >
+              <FontAwesome5
+                name="sync-alt"
+                size={14}
+                color="#fff"
+                style={{ marginRight: 8 }}
               />
-          </View>
+              <Text style={styles.textoAcao} onPress={atualizar}>
+                Atualizar
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
 
-          <Text style={styles.label}>telefone para contato:</Text>
-          <View style={styles.inputText}>
-              <MaskInput
-                  value={telefone}
-                  onChangeText={setTelefone}
-                  placeholder="(00) 00000-0000"
-                  keyboardType="phone-pad"
-                  mask={[
-                      '(', /\d/, /\d/, ')', ' ',
-                      /\d/, /\d/, /\d/, /\d/, /\d/, '-',
-                      /\d/, /\d/, /\d/, /\d/
-                  ]}
-                  style={{ fontSize: 16 }}
+          {/* Botão Excluir */}
+          <TouchableOpacity
+            style={styles.botaoAcao}
+            onPress={confirmarExclusao}
+          >
+            <LinearGradient
+              colors={["#5B69A3", "#D26E38"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.degradeAcao}
+            >
+              <FontAwesome5
+                name="trash-alt"
+                size={14}
+                color="#fff"
+                style={{ marginRight: 8 }}
               />
-          </View>
+              <Text style={styles.textoAcao}>Excluir</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
 
-          <Text style={styles.label}>Descrição do seu trabalho:</Text>
+      <View style={[styles.linhaBotoes, menuAberto && { opacity: 0.4 }]}>
         <TouchableOpacity onPress={publicar}>
           <LinearGradient
             colors={["#5B69A3", "#D26E38"]} // esquerda → direita
@@ -214,18 +386,40 @@ export default function MeuPortfolio() {
             end={{ x: 1, y: 0 }}
             style={styles.botaoPublicar}
           >
+            <FontAwesome5
+              name="bullhorn"
+              size={16}
+              color="#fff"
+              style={{ marginRight: 8 }}
+            />
             <Text style={styles.botaoTexto}>Publicar</Text>
           </LinearGradient>
         </TouchableOpacity>
-
-      </ScrollView>
+        <TouchableOpacity
+          onPress={opcoes}
+          disabled={!temPortfolio}
+          style={[
+            styles.botaoMais,
+            menuAberto && { opacity: 0.4 }, // efeito quando menu aberto
+            !temPortfolio && styles.botaoMaisDesabilitado, // aparência de desabilitado
+          ]}
+        >
+          <LinearGradient
+            colors={["#5B69A3", "#D26E38"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.degradeMais}
+          >
+            <FontAwesome5 name="plus" size={38} color="#fff" />
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 18,
     backgroundColor: "#FFF",
     marginTop: -35,
@@ -285,18 +479,81 @@ const styles = StyleSheet.create({
     marginTop: 15,
     textAlignVertical: "top",
   },
-  botaoPublicar: {
+  linhaBotoes: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
     marginTop: 25,
+    marginBottom: 32,
+    paddingHorizontal: 18,
+  },
+  botaoPublicar: {
+    flexDirection: "row",
     paddingVertical: 14,
+    paddingHorizontal: 65,
     borderRadius: 30,
     alignItems: "center",
-    alignSelf: "flex-start",
-    paddingHorizontal: 55,
+    justifyContent: "center",
   },
   botaoTexto: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "700",
     fontFamily: "Jua",
+    alignItems: "left",
+  },
+
+  botaoMais: {
+    width: 55,
+    height: 55,
+    borderRadius: 32,
+    overflow: "hidden",
+  },
+
+  botaoMaisDesabilitado: {
+    opacity: 0.4,
+  },
+
+  degradeMais: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  containerAcoes: {
+    marginTop: 20,
+    width: "100%",
+    alignItems: "flex-end",
+  },
+
+  botaoAcao: {
+    marginBottom: 8, // espaço entre Atualizar e Excluir
+    borderRadius: 30,
+    overflow: "hidden",
+  },
+
+  degradeAcao: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+  },
+
+  textoAcao: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255,255,255,0.7)", // embaçado
   },
 });

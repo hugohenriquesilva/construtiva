@@ -1,5 +1,4 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {ModalMostraContato} from "../../../src/components/mostraContato";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -8,14 +7,13 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-  Modal
+  View
 } from "react-native";
 
 export default function Home() {
   const [filtrosProfissional, setFiltrosProfissional] = useState([]);
   const [filtrosLocalizacao, setFiltrosLocalizacao] = useState([]);
-  const [contatoSelecionado, setContatoSelecionado] = useState({email: "", telefone: ""});
+
   const [profissionalSelecionado, setProfissionalSelecionado] = useState("");
   const [localizacaoSelecionada, setLocalizacaoSelecionada] = useState("");
 
@@ -50,14 +48,8 @@ export default function Home() {
   return unsubscribe;
 }, [navigation]);
 
-  function Conversar(email, telefone) {
-      setContatoSelecionado({email, telefone});
-      setModalVisible(true);
-    //abri um modal que foi importado previamente
-  }
-
-  function fecharModal() {
-    setModalVisible(false);
+  function Conversar() {
+    setModalVisible(true); //abri um modal que foi importado previamente
   }
 
     const cardsFiltrados = cards.filter((item) => {
@@ -69,124 +61,118 @@ export default function Home() {
     );
   });
 
-    return (
-        <>
-            <ScrollView
-                style={styles.container}
-                contentContainerStyle={{ paddingBottom: 50 }}
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 50 }}
+    >
+      <Text style={styles.header}></Text>
+
+      <View style={styles.filterBox}>
+        <Text style={styles.filterText}>Filtre de acordo com a sua necessidade</Text>
+
+        <View style={styles.selectRow}>
+
+          {/* FILTRO PROFISSIONAL */}
+          <View style={styles.select}>
+            <Picker
+              selectedValue={profissionalSelecionado}
+              onValueChange={(value) => setProfissionalSelecionado(value)}
+              style={{ width: "100%" }}
             >
-                <Text style={styles.header}></Text>
+              <Picker.Item label="Profissional" value="" />
 
-                <View style={styles.filterBox}>
-                    <Text style={styles.filterText}>Filtre de acordo com a sua necessidade</Text>
+              {filtrosProfissional.map((prof, index) => (
+                <Picker.Item key={index} label={prof} value={prof} />
+              ))}
+            </Picker>
+          </View>
 
-                    <View style={styles.selectRow}>
-
-                        <View style={styles.select}>
-                            <Picker
-                                selectedValue={profissionalSelecionado}
-                                onValueChange={(value) => setProfissionalSelecionado(value)}
-                                style={{ width: "100%" }}
-                            >
-                                <Picker.Item label="Profissional ▼" value="" />
-
-                                {filtrosProfissional.map((prof, index) => (
-                                    <Picker.Item key={index} label={prof} value={prof} />
-                                ))}
-                            </Picker>
-                        </View>
-
-                        <View style={styles.select}>
-                            <Picker
-                                selectedValue={localizacaoSelecionada}
-                                onValueChange={(value) => setLocalizacaoSelecionada(value)}
-                                style={{ width: "100%" }}
-                            >
-                                <Picker.Item label="Localização ▼" value="" />
-
-                                {filtrosLocalizacao.map((loc, index) => (
-                                    <Picker.Item key={index} label={loc} value={loc} />
-                                ))}
-                            </Picker>
-                        </View>
-                    </View>
-                </View>
-
-                {cardsFiltrados.map((item, index) => (
-                    <View key={index} style={styles.card}>
-
-                        <Text style={styles.cardName}>{item.nome}</Text>
-
-                        {item.clt && (
-                            <View style={styles.badgeCLT}>
-                                <Text style={styles.badgeText}>CLT</Text>
-                            </View>
-                        )}
-
-                        <Text style={styles.cardProfissional}>Profissional</Text>
-
-                        <Text style={styles.cardRole}>{item.area}</Text>
-
-                        <Text style={styles.sectionLabel}>Descrição:</Text>
-                        <View style={styles.descriptionBox}>
-                            <Text style={styles.descriptionText}>{item.descricao}</Text>
-                        </View>
-
-                        <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Local:</Text>
-
-                            <View style={styles.infoValueBox}>
-                                <Text style={styles.infoValue}>{item.bairro}</Text>
-                            </View>
-
-                            <View style={styles.infoValueBox}>
-                                <Text style={styles.infoValue}>{item.cidade}</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Disponibilidade:</Text>
-
-                            <View style={styles.infoBox}>
-                                <Text style={styles.infoValue}>{item.disponibilidade}</Text>
-                            </View>
-                        </View>
-
-                        {item.clt && (
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>Contratação:</Text>
-
-                                <View style={styles.infoBox}>
-                                    <Text style={styles.infoValue}>Disponível para CLT</Text>
-                                </View>
-                            </View>
-                        )}
-
-                        <TouchableOpacity
-                            style={styles.button}
-                            onPress={() => Conversar(item.email, item.telefone)}
-                        >
-                            <Text style={styles.buttonText}>Conversar</Text>
-                        </TouchableOpacity>
-
-                    </View>
-                ))}
-            </ScrollView>
-
-            <Modal
-                visible={modalVisible}
-                transparent
-                animationType="fade"
-                onRequestClose={fecharModal}
+          {/* FILTRO LOCALIZAÇÃO */}
+          <View style={styles.select}>
+            <Picker
+              selectedValue={localizacaoSelecionada}
+              onValueChange={(value) => setLocalizacaoSelecionada(value)}
+              style={{ width: "100%" }}
             >
-                <ModalMostraContato
-                    handleClose={fecharModal}
-                    email={contatoSelecionado.email}
-                    telefone={contatoSelecionado.telefone}
-                />
-            </Modal>
-        </>
-    );
+              <Picker.Item label="Localização" value="" />
+
+              {filtrosLocalizacao.map((loc, index) => (
+                <Picker.Item key={index} label={loc} value={loc} />
+              ))}
+            </Picker>
+          </View>
+        </View>
+      </View>
+
+
+      {/* Cards Dinâmicos e Filtrados */}
+   {cardsFiltrados.map((item, index) => (
+  <View key={index} style={styles.card}>
+
+    {/* Nome dentro da “pill” cinza */}
+    <View style={styles.topBox}>
+      <Text style={styles.cardName}>{item.nome}</Text>
+    </View>
+    
+    {/* Badge CLT (somente se for true) */}
+    {item.clt && (
+      <View style={styles.badgeCLT}>
+        <Text style={styles.badgeText}>CLT</Text>
+      </View>
+    )}
+
+    {/* Profissão também dentro de “pill” */}
+    <View style={styles.topBox}>
+      <Text style={styles.cardRole}>{item.area}</Text>
+    </View>
+
+
+          <Text style={styles.sectionLabel}>Descrição:</Text>
+          <View style={styles.descriptionBox}>
+            <Text style={styles.descriptionText}>{item.descricao}</Text>
+          </View>
+
+         <View style={styles.infoRow}>
+  <Text style={styles.infoLabel}>Local:</Text>
+
+  <View style={styles.infoLocalRow}>
+    <View style={styles.infoValueBox}>
+      <Text style={styles.infoValue}>{item.bairro}</Text>
+    </View>
+
+    <View style={styles.infoValueBox}>
+      <Text style={styles.infoValue}>{item.cidade}</Text>
+    </View>
+  </View>
+</View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Disponibilidade:</Text>
+
+            <View style={styles.infoBox}>
+              <Text style={styles.infoValue}>{item.disponibilidade}</Text>
+            </View>
+          </View>
+
+          {item.clt && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Contratação:</Text>
+
+              <View style={styles.infoBox}>
+                <Text style={styles.infoValue}>Disponível para CLT</Text>
+              </View>
+            </View>
+          )}
+
+          <TouchableOpacity style={styles.button} onPress={Conversar}>
+            <Text style={styles.buttonText}>Conversar</Text>
+          </TouchableOpacity>
+
+        </View>
+      ))}
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -234,17 +220,40 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
 
-  cardName: { fontSize: 20, fontWeight: "600", textAlign: "center", fontFamily: "Jua", marginBottom: 7},
-  cardProfissional: { fontSize: 18, fontWeight: "600", textAlign: "center", fontFamily: "Jua" },
-  cardRole: { fontSize: 17, textAlign: "center", marginBottom: 10, fontFamily: "Jua" },
+ cardName: {
+  fontSize: 18,
+  fontWeight: "600",
+  textAlign: "center",
+  fontFamily: "Jua",
+},
+
+
+cardRole: {
+  fontSize: 16,
+  textAlign: "center",
+  marginBottom: 10,
+  fontFamily: "Jua",
+},
+topBox: {
+  alignSelf: "center",
+  backgroundColor: "#f0f0f0", // cinza clarinho
+  borderRadius: 24,
+  paddingVertical: 8,
+  paddingHorizontal: 24,
+  marginBottom: 8,
+  width: "90%",          
+  alignItems: "center",  
+
+},
 
   sectionLabel: {
     fontWeight: "600",
     color: "#5b69a3",
     marginBottom: 5,
     marginTop: 5,
-    fontFamily: "Jua",
+    //fontFamily: "Jua",
     fontSize: 16,
+      textAlign: "center",   
   },
 
   descriptionBox: {
@@ -256,26 +265,42 @@ const styles = StyleSheet.create({
   },
   descriptionText: { fontSize: 14, color: "#444" },
 
-  infoRow: { flexDirection: "row", alignItems: "center", marginBottom: 5 },
-  infoLabel: { fontWeight: "600", marginRight: 5, color: "#5B69A3",fontFamily: "Jua", fontSize: 16 },
+  infoRow: {
+  marginBottom: 8,
+  flexWrap: "wrap",
+},
+infoLabel: {
+  fontWeight: "600",
+  color: "#5B69A3",
+  fontFamily: "Jua",
+  fontSize: 16,
+  marginBottom: 4,
+  width: "100%",     
+},
   
-  infoBox: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginRight: 10,
-  },
+ infoBox: {
+  backgroundColor: "#fff",
+  paddingHorizontal: 14,
+  paddingVertical: 6,
+  borderRadius: 12,
+  marginRight: 8,
+  marginBottom: 4,
+  borderWidth: 1,
+  borderColor: "#e0e0e0",
+},
 
-  infoValueBox: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
+
+ infoValueBox: {
+  backgroundColor: "#fff",
+  paddingHorizontal: 14,
+  paddingVertical: 6,
+  borderRadius: 12,
+  marginRight: 8,
+  marginBottom: 4,
+  borderWidth: 1,
+  borderColor: "#e0e0e0",
+},
+
   infoValue: {
     color: "#333",
     fontSize: 14,
@@ -304,5 +329,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Jua",
   },
+  infoLocalRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 10,
+},
+
 
 });
