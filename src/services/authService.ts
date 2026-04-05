@@ -29,7 +29,7 @@ export async function signUp(data: SignUpData) {
     await setDoc(doc(db, "users", uid), {
       fullName: data.fullName,
       CPF: data.CPF,
-      phone: data.phoneNumber,
+      phoneNumber: data.phoneNumber,
       birthday: data.birthday,
       email: data.email,
       createdAt: new Date().toISOString(),
@@ -37,7 +37,7 @@ export async function signUp(data: SignUpData) {
 
     alert("Usuário cadastrado com sucesso!");
   } catch (error) {
-    alert(`Erro ao cadastrar:" ${error}`);
+    alert(`Erro ao cadastrar: ${error}`);
     throw error;
   }
 }
