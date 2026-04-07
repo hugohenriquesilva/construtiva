@@ -7,6 +7,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const Stack = createNativeStackNavigator();
 
+//atual agora
+
 export default function AppNavigator() {
   return (
     <SafeAreaView style={{ flex: 1 }}>
