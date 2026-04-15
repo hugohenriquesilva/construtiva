@@ -70,9 +70,18 @@ text: {
 
 ContainerRegister: {
   alignItems:"center",
-  justifyContent: "center",
+    justifyContent: "center",
   marginTop: 160,
-}
+},
+
+IconsStart: {
+    alignItems:"center",
+    justifyContent: "center",
+    width:40,
+    height:40,
+    marginTop:50
+  }
+
 });
 
 
