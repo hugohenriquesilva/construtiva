@@ -74,13 +74,19 @@ ContainerRegister: {
   marginTop: 160,
 },
 
-IconsStart: {
-    alignItems:"center",
-    justifyContent: "center",
-    width:40,
-    height:40,
-    marginTop:50
-  }
+containerIcons: {
+  flexDirection: 'row',       // coloca lado a lado
+  justifyContent: 'center',   // centraliza horizontalmente
+  alignItems: 'center',       // alinha verticalmente
+  gap: 16,                    // espaço entre os ícones (RN mais recente)
+  marginTop: 20,
+},
+
+iconStart: {
+  width: 40,
+  height: 40,
+  resizeMode: 'contain',
+}
 
 });
 

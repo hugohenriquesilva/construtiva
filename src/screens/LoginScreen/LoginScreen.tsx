@@ -19,6 +19,7 @@ import {
 } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types/navigation";
 import IconGoogle from "@/assets/images/IconGoogle.png";
+import IconFacebook from "@/assets/images/IconFacebook.png";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -66,7 +67,10 @@ export function LoginScreen() {
           <View style={LoginStyles.line} />
           <Text style={LoginStyles.text}>OU</Text>
           <View style={LoginStyles.line} />
+        </View>
+        <View style={LoginStyles.containerIcons}>
           <Image source={IconGoogle} style={LoginStyles.IconsStart}/>
+          <Image source={IconFacebook} style={LoginStyles.IconsStart}/>
         </View>
         {/* CADASTRO */}
         <View style={LoginStyles.ContainerRegister}>
