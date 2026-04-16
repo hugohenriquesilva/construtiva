@@ -23,9 +23,10 @@ export function Button({ title, onPress }: ButtonProps) {
 
 const styles = StyleSheet.create({
   button: {
-    paddingVertical: 14,
+    paddingVertical: 15,
     paddingHorizontal: 40,
-    borderRadius: 40,
+    borderRadius: 25,
+    marginTop: 20,
     alignItems: "center",
   },
   text: {
