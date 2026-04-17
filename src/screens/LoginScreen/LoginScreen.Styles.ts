@@ -71,7 +71,7 @@ text: {
 ContainerRegister: {
   alignItems:"center",
     justifyContent: "center",
-  marginTop: 160,
+  marginTop: 50,
 },
 
 containerIcons: {
@@ -82,12 +82,17 @@ containerIcons: {
   marginTop: 20,
 },
 
-iconStart: {
-  width: 40,
-  height: 40,
+iconFace: {
+  width: 39,
+  height: 39,
+  resizeMode: 'contain',
+},
+
+iconGoogle: {
+  width: 45,
+  height: 45,
   resizeMode: 'contain',
 }
-
 });
 
 

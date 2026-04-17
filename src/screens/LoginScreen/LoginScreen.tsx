@@ -69,8 +69,8 @@ export function LoginScreen() {
           <View style={LoginStyles.line} />
         </View>
         <View style={LoginStyles.containerIcons}>
-          <Image source={IconGoogle} style={LoginStyles.IconsStart}/>
-          <Image source={IconFacebook} style={LoginStyles.IconsStart}/>
+          <Image source={IconGoogle} style={LoginStyles.iconGoogle}/>
+          <Image source={IconFacebook} style={LoginStyles.iconFace}/>
         </View>
         {/* CADASTRO */}
         <View style={LoginStyles.ContainerRegister}>
