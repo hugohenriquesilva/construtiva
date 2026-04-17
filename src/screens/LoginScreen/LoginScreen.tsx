@@ -2,7 +2,6 @@ import { InputPattern } from "@/src/components/InputPattern";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { Button } from "../../components/TouchableOpacityButton";
-import { boolean } from "yup";
 import { LoginStyles } from "../LoginScreen/LoginScreen.Styles";
 import { Image, Text, StyleSheet, TouchableOpacity, View } from "react-native";
 import iconEmail from "../../../assets/images/IconEmail.png";
@@ -20,14 +19,22 @@ import {
 import { RootStackParamList } from "../../types/navigation";
 import IconGoogle from "@/assets/images/IconGoogle.png";
 import IconFacebook from "@/assets/images/IconFacebook.png";
-
-const Stack = createNativeStackNavigator<RootStackParamList>();
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/firebaseConfig";
 
 export function LoginScreen() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation<any>();
+
+  async function handleLogin() {
+    try {
+      await signInWithEmailAndPassword(auth, email, senha);
+    } catch (error) {
+      alert(`Email ou senha inválidos`);
+    }
+  }
   return (
     <KeyboardAwareScrollView
       contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
@@ -61,7 +68,7 @@ export function LoginScreen() {
         {/* ESQUECI SENHA */}
         <Text style={LoginStyles.forgot}>Esqueci minha senha</Text>
 
-        <Button title="Login" onPress={boolean} />
+        <Button title="Login" onPress={handleLogin} />
 
         <View style={LoginStyles.divider}>
           <View style={LoginStyles.line} />
@@ -74,6 +81,15 @@ export function LoginScreen() {
         </View>
         {/* CADASTRO */}
         <View style={LoginStyles.ContainerRegister}>
+          <Text style={LoginStyles.register}>
+            Primeiro acesso?{" "}
+            <Text
+              style={LoginStyles.link}
+              onPress={() => navigation.navigate("Cadastro")}
+            >
+              Cadastre-se aqui
+            </Text>
+          </Text>
           <Text style={LoginStyles.register}>
             Primeiro acesso?{" "}
             <Text
