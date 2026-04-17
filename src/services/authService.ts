@@ -1,10 +1,17 @@
-//Essas são as importações que eu preciso fazer para que a minha função de esrever algo no banco  de dados e no authentication funcionem
-
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  signInWithPopup,
+  GoogleAuthProvider,
+  User,
+} from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
-import { createUserWithEmailAndPassword } from "firebase/auth"; //import da função que cria um novo usuário
-import { doc, setDoc } from "firebase/firestore"; //doc importa a referência do documento "users"; setDoc realmente grava no banco
 
-//Aqui eu estou basicamente dizendo que qualquer objeto do tipo signUpData precisa necessariamente ter esses campos com esse tipos dentro dele
+const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope("https://www.googleapis.com/auth/userinfo.email");
+googleProvider.addScope("https://www.googleapis.com/auth/userinfo.profile");
 
 interface SignUpData {
   fullName: string;
@@ -15,6 +22,14 @@ interface SignUpData {
   password: string;
 }
 
+export async function loginUser(
+  email: string,
+  password: string,
+): Promise<User> {
+  const result = await signInWithEmailAndPassword(auth, email, password);
+  return result.user;
+}
+
 export async function signUp(data: SignUpData) {
   try {
     const userCredential = await createUserWithEmailAndPassword(
@@ -23,7 +38,6 @@ export async function signUp(data: SignUpData) {
       data.password,
     );
 
-    //o auth automaticamente cria um ID único para cada usuário, aqui eu estou "pegando" esse Id
     const uid = userCredential.user.uid;
 
     await setDoc(doc(db, "users", uid), {
@@ -34,10 +48,23 @@ export async function signUp(data: SignUpData) {
       email: data.email,
       createdAt: new Date().toISOString(),
     });
-
-    alert("Usuário cadastrado com sucesso!");
   } catch (error) {
-    alert(`Erro ao cadastrar: ${error}`);
+    console.error("Erro no signUp:", error); // só loga, sem alert
+    throw error; // repassa pro componente tratar
+  }
+}
+
+export async function logoutUser(): Promise<void> {
+  await signOut(auth);
+}
+
+export async function loginWithGoogle() {
+  try {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    return result.user;
+  } catch (error: any) {
+    console.error("ERRO COMPLETO:", error);
     throw error;
   }
 }

@@ -4,8 +4,8 @@ import {
   TextInput,
   TouchableOpacity,
   Text,
-  Alert,
   ScrollView,
+  ImageSourcePropType,
   Image,
   View,
 } from "react-native";
@@ -18,8 +18,8 @@ import logo from "@/assets/images/logoConstrutiva.png";
 import { cpfMask } from "@/src/utils/CpfMask";
 import { PhoneMask } from "@/src/utils/PhoneMask";
 import { useState } from "react";
-import { Picker } from "@react-native-picker/picker";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { AppAlert } from "@/src/components/AppAlert";
 
 export function SignUpScreen() {
   type FormData = {
@@ -30,6 +30,24 @@ export function SignUpScreen() {
     email: string;
     password: string;
   };
+
+  const [isLoading, setIsLoading] = useState(false);
+  //Verificação para saber onde está focado o input
+  const [isFocused, setIsFocused] = useState<string | null>(null);
+
+  //alerta
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    subTitle: string | null;
+    messages: string[] | null;
+    character: ImageSourcePropType | null;
+  }>({
+    title: "",
+    subTitle: null,
+    messages: null,
+    character: null,
+  });
 
   //aqui eu estou criando um esquema, que basicamente é a maneira como vou receber os meus dados, eles certas regras. O formulário é um objeto com vários campos, o yup vai validar se esses objetos batem com as regras que eu criei
   const schema = yup.object({
@@ -64,6 +82,7 @@ export function SignUpScreen() {
   const {
     control,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<FormData>({
     resolver: yupResolver(schema), //aqui estou passando os dados do meu form pelas regras do yup
@@ -77,21 +96,56 @@ export function SignUpScreen() {
     },
   });
 
-  //chamando a função service para envio para o authenticator do firebase
-  async function handleSignUp(data: FormData) {
-    try {
-      await signUp(data);
-
-      console.log("dados enviados:", data);
-      alert("Usuário cadastrado com sucesso");
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao cadastrar usuário");
-    }
+  function showAlert(
+    title: string,
+    subTitle: string,
+    messages: string[] = [],
+    character: ImageSourcePropType,
+  ) {
+    setAlertConfig({ title, subTitle, messages, character });
+    setAlertVisible(true);
   }
 
-  //Verificação para saber onde está focado o input
-  const [isFocused, setIsFocused] = useState<string | null>(null);
+  //chamando a função service para envio para o authenticator do firebase
+  async function handleSignUp(data: FormData) {
+    setIsLoading(true);
+    try {
+      await signUp(data);
+      showAlert(
+        "Agora, você faz parte da Construtiva",
+        "Algumas dicas",
+        [
+          "Vasculhe todo o app",
+          "Mantenha as atualizações em dia",
+          "Se atente aos novos serviços",
+        ],
+        require("@/assets/images/deuCerto.png"),
+      );
+      reset();
+    } catch (error: any) {
+      if (error.code === "auth/email-already-in-use") {
+        showAlert(
+          "Este e-mail já possui um cadastro",
+          "Tente acessar pela tela de Login",
+          [],
+          require("@/assets/images/erroFacil.png"),
+        );
+      } else {
+        showAlert(
+          "Erro interno no sistema",
+          "O que fazer agora:",
+          [
+            "Feche o app e limpe a memória cachê",
+            "Aguarde algumas horas e tente novamente",
+            "Caso ainda não funcione, contate o suporte",
+          ],
+          require("@/assets/images/erroGrave.png"),
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <KeyboardAwareScrollView
@@ -253,8 +307,24 @@ export function SignUpScreen() {
             <Text style={globalStyles.error}>{errors.password?.message}</Text>
           )}
 
-          <Button title="Cadastrar" onPress={handleSubmit(handleSignUp)} />
+          <Button
+            title="Cadastrar"
+            onPress={handleSubmit(handleSignUp)}
+            loading={isLoading}
+            loadingTitle="Cadastrando..."
+          />
         </ScrollView>
+
+        {/* alerta */}
+        <AppAlert
+          visible={alertVisible}
+          character={alertConfig.character}
+          title={alertConfig.title}
+          subTitle={alertConfig.subTitle}
+          messages={alertConfig.messages}
+          buttonLabel="OK"
+          onClose={() => setAlertVisible(false)}
+        />
       </SafeAreaView>
     </KeyboardAwareScrollView>
   );

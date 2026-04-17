@@ -69,20 +69,20 @@ export function LoginScreen() {
           <View style={LoginStyles.line} />
         </View>
         <View style={LoginStyles.containerIcons}>
-          <Image source={IconGoogle} style={LoginStyles.IconsStart}/>
-          <Image source={IconFacebook} style={LoginStyles.IconsStart}/>
+          <Image source={IconGoogle} style={LoginStyles.iconStart} />
+          <Image source={IconFacebook} style={LoginStyles.iconStart} />
         </View>
         {/* CADASTRO */}
         <View style={LoginStyles.ContainerRegister}>
-        <Text style={LoginStyles.register}>
-          Primeiro acesso?{" "}
-          <Text
-            style={LoginStyles.link}
-            onPress={() => navigation.navigate("Cadastro")}
-          >
-            Cadastre-se aqui
+          <Text style={LoginStyles.register}>
+            Primeiro acesso?{" "}
+            <Text
+              style={LoginStyles.link}
+              onPress={() => navigation.navigate("Cadastro")}
+            >
+              Cadastre-se aqui
+            </Text>
           </Text>
-        </Text>
         </View>
       </View>
     </KeyboardAwareScrollView>

@@ -1,13 +1,13 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet } from "react-native";
 
 export const LoginStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#eee",  
+    backgroundColor: "#eee",
     justifyContent: "center",
     padding: 20,
+    paddingTop: 30,
     display: "flex",
-    
   },
 
   logo: {
@@ -21,18 +21,16 @@ export const LoginStyles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 30,
     color: "#555",
-    
   },
 
   forgot: {
-     width: "100%",
-  textAlign: "right",
-  paddingRight: 10,
+    width: "100%",
+    textAlign: "right",
+    paddingRight: 10,
     marginBottom: 20,
     color: "#777",
     fontSize: 13,
     textDecorationLine: "underline",
-     
   },
 
   register: {
@@ -46,50 +44,46 @@ export const LoginStyles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  hero:{
+  hero: {
     alignItems: "center",
   },
 
   divider: {
-  flexDirection: "row",
-  alignItems: "center",
-  marginVertical: 20,
-},
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 20,
+  },
 
-line: {
-  flex: 1,
-  height: 1,
-  backgroundColor: "#ccc",
-},
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#ccc",
+  },
 
-text: {
-  marginHorizontal: 10,
-  color: "#777",
-  fontSize: 12,
-},
+  text: {
+    marginHorizontal: 10,
+    color: "#777",
+    fontSize: 12,
+  },
 
-ContainerRegister: {
-  alignItems:"center",
+  ContainerRegister: {
+    alignItems: "center",
     justifyContent: "center",
-  marginTop: 160,
-},
+    marginTop: 80,
+  },
 
-containerIcons: {
-  flexDirection: 'row',       // coloca lado a lado
-  justifyContent: 'center',   // centraliza horizontalmente
-  alignItems: 'center',       // alinha verticalmente
-  gap: 16,                    // espaço entre os ícones (RN mais recente)
-  marginTop: 20,
-},
+  containerIcons: {
+    flexDirection: "row", // coloca lado a lado
+    justifyContent: "center", // centraliza horizontalmente
+    alignItems: "center", // alinha verticalmente
+    gap: 16, // espaço entre os ícones (RN mais recente)
+    marginTop: 20,
+  },
 
-iconStart: {
-  width: 40,
-  height: 40,
-  resizeMode: 'contain',
-}
-
+  iconStart: {
+    width: 40,
+    height: 40,
+    resizeMode: "contain",
+    padding: 20,
+  },
 });
-
-
-
-
