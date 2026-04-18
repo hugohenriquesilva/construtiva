@@ -16,23 +16,41 @@ import {
   NativeStackNavigationProp,
   createNativeStackNavigator,
 } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../../types/navigation";
+import { RootStackParamList } from "../../../types/navigation";
 import IconGoogle from "@/assets/images/IconGoogle.png";
 import IconFacebook from "@/assets/images/IconFacebook.png";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/firebaseConfig";
+import { loginUser } from "@/src/services/authService";
 
 export function LoginScreen() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation<any>();
+  const [erro, setErro] = useState<string | null>(null);
 
-  async function handleLogin() {
+  async function handleLogin(email: string, senha: string) {
     try {
-      await signInWithEmailAndPassword(auth, email, senha);
-    } catch (error) {
-      alert(`Email ou senha inválidos`);
+      await loginUser(email, senha);
+      alert(`logado`);
+    } catch (error: any) {
+      if (email === "" || senha === "") {
+        setErro("Preencha todos os campos");
+      } else if (error.code === "auth/wrong-password") {
+        setErro("Senha incorreta.");
+      } else if (error.message === "email-not-verified") {
+        setErro("Email não verificado. Cheque sua caixa de entrada.");
+      } else if (error.code === "auth/invalid-email") {
+        setErro("E-mail inválido");
+      } else if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/invalid-credential"
+      ) {
+        setErro("Cadastre-se na plataforma");
+      } else {
+        setErro("Erro ao fazer login. Tente novamente.");
+      }
     }
   }
   return (
@@ -66,9 +84,18 @@ export function LoginScreen() {
         />
 
         {/* ESQUECI SENHA */}
-        <Text style={LoginStyles.forgot}>Esqueci minha senha</Text>
+        <Text
+          style={LoginStyles.forgot}
+          onPress={() => navigation.navigate("ForgotPassword")}
+        >
+          Esqueci minha senha
+        </Text>
 
-        <Button title="Login" onPress={handleLogin} />
+        {erro && (
+          <Text style={{ color: "red", textAlign: "center" }}>{erro}</Text>
+        )}
+
+        <Button title="Login" onPress={() => handleLogin(email, senha)} />
 
         <View style={LoginStyles.divider}>
           <View style={LoginStyles.line} />
@@ -81,15 +108,6 @@ export function LoginScreen() {
         </View>
         {/* CADASTRO */}
         <View style={LoginStyles.ContainerRegister}>
-          <Text style={LoginStyles.register}>
-            Primeiro acesso?{" "}
-            <Text
-              style={LoginStyles.link}
-              onPress={() => navigation.navigate("Cadastro")}
-            >
-              Cadastre-se aqui
-            </Text>
-          </Text>
           <Text style={LoginStyles.register}>
             Primeiro acesso?{" "}
             <Text

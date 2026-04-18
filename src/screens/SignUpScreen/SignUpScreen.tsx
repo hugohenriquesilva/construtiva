@@ -112,17 +112,19 @@ export function SignUpScreen() {
     try {
       await signUp(data);
       showAlert(
-        "Agora, você faz parte da Construtiva",
-        "Algumas dicas",
+        "Verifique a caixa de entrada do seu e-mail",
+        "Siga esses passos:",
         [
-          "Vasculhe todo o app",
-          "Mantenha as atualizações em dia",
-          "Se atente aos novos serviços",
+          "Entre em seu e-mail",
+          "Procure pela e-mail da Construtiva",
+          "Depois disso, aproveite a plataforma",
         ],
         require("@/assets/images/deuCerto.png"),
       );
       reset();
+      navigation.navigate("Login");
     } catch (error: any) {
+      console.log("Erro no cadastro:", error.code, error.message); // 👈
       if (error.code === "auth/email-already-in-use") {
         showAlert(
           "Este e-mail já possui um cadastro",
@@ -130,6 +132,7 @@ export function SignUpScreen() {
           [],
           require("@/assets/images/erroFacil.png"),
         );
+        navigation.navigate("Login");
       } else {
         showAlert(
           "Erro interno no sistema",

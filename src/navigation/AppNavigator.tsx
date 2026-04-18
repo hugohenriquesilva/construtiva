@@ -8,7 +8,8 @@ import { auth } from "@/firebaseConfig";
 import { LoginScreen } from "../screens/LoginScreen/LoginScreen";
 import { SignUpScreen } from "../screens/SignUpScreen/SignUpScreen";
 import { HomeScreen } from "../screens/HomeScreen/HomeScreen";
-import { RootStackParamList } from "../types/navigation";
+import { RootStackParamList } from "../../types/navigation";
+import { ForgotPassword } from "../screens/ForgotPassword/ForgotPassword";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -20,7 +21,11 @@ export default function AppNavigator() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
+      if (firebaseUser && firebaseUser.emailVerified) {
+        setUser(firebaseUser);
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
     return unsubscribe;
@@ -43,6 +48,7 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Cadastro" component={SignUpScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
           </>
         )}
       </Stack.Navigator>

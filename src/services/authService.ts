@@ -5,6 +5,8 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   User,
+  sendEmailVerification,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
@@ -27,6 +29,12 @@ export async function loginUser(
   password: string,
 ): Promise<User> {
   const result = await signInWithEmailAndPassword(auth, email, password);
+
+  if (!result.user.emailVerified) {
+    await auth.signOut();
+    throw new Error("email-not-verified");
+  }
+
   return result.user;
 }
 
@@ -39,6 +47,7 @@ export async function signUp(data: SignUpData) {
     );
 
     const uid = userCredential.user.uid;
+    await sendEmailVerification(userCredential.user);
 
     await setDoc(doc(db, "users", uid), {
       fullName: data.fullName,
@@ -49,9 +58,12 @@ export async function signUp(data: SignUpData) {
       createdAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Erro no signUp:", error); // só loga, sem alert
     throw error; // repassa pro componente tratar
   }
+}
+
+export async function resetPassword(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email);
 }
 
 export async function logoutUser(): Promise<void> {
