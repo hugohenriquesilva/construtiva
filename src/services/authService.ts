@@ -58,6 +58,7 @@ export async function signUp(data: SignUpData) {
       createdAt: new Date().toISOString(),
     });
   } catch (error) {
+    console.log(error);
     throw error; // repassa pro componente tratar
   }
 }

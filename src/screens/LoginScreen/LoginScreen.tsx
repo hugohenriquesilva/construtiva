@@ -43,10 +43,7 @@ export function LoginScreen() {
         setErro("Email não verificado. Cheque sua caixa de entrada.");
       } else if (error.code === "auth/invalid-email") {
         setErro("E-mail inválido");
-      } else if (
-        error.code === "auth/user-not-found" ||
-        error.code === "auth/invalid-credential"
-      ) {
+      } else if (error.code === "auth/user-not-found") {
         setErro("Cadastre-se na plataforma");
       } else {
         setErro("Erro ao fazer login. Tente novamente.");

@@ -20,6 +20,7 @@ import { PhoneMask } from "@/src/utils/PhoneMask";
 import { useState } from "react";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { AppAlert } from "@/src/components/AppAlert";
+import { useNavigation } from "@react-navigation/native";
 
 export function SignUpScreen() {
   type FormData = {
@@ -31,6 +32,7 @@ export function SignUpScreen() {
     password: string;
   };
 
+  const navigation = useNavigation<any>();
   const [isLoading, setIsLoading] = useState(false);
   //Verificação para saber onde está focado o input
   const [isFocused, setIsFocused] = useState<string | null>(null);
