@@ -18,6 +18,8 @@ import logo from "@/assets/images/logoConstrutiva.png";
 import { cpfMask } from "@/src/utils/CpfMask";
 import { PhoneMask } from "@/src/utils/PhoneMask";
 import { useState } from "react";
+import { verificarMaioridade } from "@/src/utils/AgeValidator";
+import { validarCPF } from "@/src/utils/CpfValidator";
 import { Picker } from "@react-native-picker/picker";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
@@ -42,8 +44,20 @@ export function SignUpScreen() {
       .string()
       .required("O CPF é obrigatório")
       .transform((value) => value.replace(/\D/g, ""))
-      .length(11, "O CPF deve ter 11 dígitos"),
-    birthday: yup.string().required("A data é obrigatória"),
+      .length(11, "O CPF deve ter 11 dígitos")
+      .test(
+      "cpf-valido",                        // nome interno do teste
+      "CPF inválido",                       // mensagem de erro exibida ao usuário
+      (value) => validarCPF(value ?? "")    // função que retorna true ou false
+    ),
+    birthday: yup
+    .string()
+    .required("A data é obrigatória")
+    .test(
+      "maior-de-idade",                              // nome interno do teste
+      "É necessário ter 18 anos ou mais",            // mensagem de erro exibida ao usuário
+      (value) => verificarMaioridade(value ?? "")    // função que retorna true ou false
+    ),
     email: yup
       .string()
       .email("E-mail inválido")
@@ -53,6 +67,7 @@ export function SignUpScreen() {
       .transform((value) => value.replace(/\D/g, ""))
       .required("Telefone obrigatório")
       .matches(/^[1-9]{2}9\d{8}$/, "Número de celular inválido"),
+      
     password: yup
       .string()
       .min(8, "Mínimo 8 caracteres")
