@@ -18,6 +18,9 @@ import logo from "@/assets/images/logoConstrutiva.png";
 import { cpfMask } from "@/src/utils/CpfMask";
 import { PhoneMask } from "@/src/utils/PhoneMask";
 import { useState } from "react";
+import { verificarMaioridade } from "@/src/utils/AgeValidator";
+import { validarCPF } from "@/src/utils/CpfValidator";
+import { DateMask } from "@/src/utils/DateMask";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { AppAlert } from "@/src/components/AppAlert";
 import { useNavigation } from "@react-navigation/native";
@@ -36,6 +39,7 @@ export function SignUpScreen() {
   const [isLoading, setIsLoading] = useState(false);
   //Verificação para saber onde está focado o input
   const [isFocused, setIsFocused] = useState<string | null>(null);
+  const [dateText, setDateText] = useState("");
 
   //alerta
   const [alertVisible, setAlertVisible] = useState(false);
@@ -62,8 +66,20 @@ export function SignUpScreen() {
       .string()
       .required("O CPF é obrigatório")
       .transform((value) => value.replace(/\D/g, ""))
-      .length(11, "O CPF deve ter 11 dígitos"),
-    birthday: yup.string().required("A data é obrigatória"),
+      .length(11, "O CPF deve ter 11 dígitos")
+      .test(
+        "cpf-valido", // nome interno do teste
+        "CPF inválido", // mensagem de erro exibida ao usuário
+        (value) => validarCPF(value ?? ""), // função que retorna true ou false
+      ),
+    birthday: yup
+      .string()
+      .required("A data é obrigatória")
+      .test(
+        "maior-de-idade", // nome interno do teste
+        "É necessário ter 18 anos ou mais", // mensagem de erro exibida ao usuário
+        (value) => verificarMaioridade(value ?? ""), // função que retorna true ou false
+      ),
     email: yup
       .string()
       .email("E-mail inválido")
@@ -73,11 +89,12 @@ export function SignUpScreen() {
       .transform((value) => value.replace(/\D/g, ""))
       .required("Telefone obrigatório")
       .matches(/^[1-9]{2}9\d{8}$/, "Número de celular inválido"),
+
     password: yup
       .string()
       .min(8, "Mínimo 8 caracteres")
       .matches(/[0-9]/, "Precisa de um número")
-      .matches(/[\W_]/, "Precisa de um caractere especial")
+      .matches(/[\W_]/, "Precisa de um caracter especial")
       .required("Senha obrigatória"),
   });
 
@@ -219,14 +236,19 @@ export function SignUpScreen() {
           <Controller
             control={control}
             name="birthday"
-            render={({ field: { onChange, onBlur, value } }) => (
+            render={({ field: { onChange, onBlur } }) => (
               <TextInput
-                onChangeText={onChange}
+                onChangeText={(text) => {
+                  const { masked, date } = DateMask(text);
+                  setDateText(masked);
+                  onChange(date);
+                }}
                 onFocus={() => setIsFocused("birthday")}
                 onBlur={() => setIsFocused(null)}
-                value={value}
-                placeholder="Coloque sua data de nascimento"
+                value={dateText}
+                placeholder="Data de nascimento"
                 keyboardType="numeric"
+                maxLength={10}
                 style={[
                   globalStyles.input,
                   { borderColor: isFocused === "birthday" ? "blue" : "gray" },
@@ -308,7 +330,25 @@ export function SignUpScreen() {
           />
 
           {errors.password && (
-            <Text style={globalStyles.error}>{errors.password?.message}</Text>
+            <View>
+              <Text style={globalStyles.error}>{errors.password?.message}</Text>
+              <View style={globalStyles.passwordRulesContainer}>
+                <Text style={globalStyles.passwordRulesTitle}>
+                  Sua senha deve conter:
+                </Text>
+                <View style={globalStyles.passwordRulesList}>
+                  <Text style={globalStyles.passwordRuleItem}>
+                    • Mínimo de 8 caracteres
+                  </Text>
+                  <Text style={globalStyles.passwordRuleItem}>
+                    • Pelo menos um número
+                  </Text>
+                  <Text style={globalStyles.passwordRuleItem}>
+                    • Pelo menos um caracter especial
+                  </Text>
+                </View>
+              </View>
+            </View>
           )}
 
           <Button

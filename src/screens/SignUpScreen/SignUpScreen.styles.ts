@@ -42,4 +42,27 @@ export const globalStyles = StyleSheet.create({
     width: 150,
     height: 150,
   },
+
+  passwordRulesContainer: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 12,
+    backgroundColor: "#ffe3e3",
+  },
+  passwordRulesTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1A1A1A",
+    marginBottom: 10,
+  },
+  passwordRulesList: {
+    gap: 6,
+  },
+  passwordRuleItem: {
+    fontSize: 14,
+    color: "#3A3A3A",
+    lineHeight: 20,
+  },
 });
