@@ -134,7 +134,6 @@ export function SignUpScreen() {
           [],
           require("@/assets/images/erroFacil.png"),
         );
-        navigation.navigate("Login");
       } else {
         showAlert(
           "Erro interno no sistema",
