@@ -2,8 +2,9 @@ import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { BottomTabKey } from '../../../types/home';
 import { styles } from './BottomNavBar.styles';
+
+export type BottomTabKey = 'home' | 'documents' | 'profile' | 'tools' | 'menu';
 
 interface BottomNavBarProps {
   activeTab: BottomTabKey;

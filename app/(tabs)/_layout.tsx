@@ -1,16 +1,19 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import BottomNavBar, { BottomTabKey } from '../../src/components/BottomNavBar/BottomNavBar';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const [activeTab, setActiveTab] = useState<BottomTabKey>('menu');
 
   return (
     <Tabs
+      tabBar={() => <BottomNavBar activeTab={activeTab} onTabPress={setActiveTab} />}
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
