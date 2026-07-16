@@ -33,7 +33,6 @@ export function LoginScreen() {
   async function handleLogin(email: string, senha: string) {
     try {
       await loginUser(email, senha);
-      alert(`logado`);
     } catch (error: any) {
       if (email === "" || senha === "") {
         setErro("Preencha todos os campos");

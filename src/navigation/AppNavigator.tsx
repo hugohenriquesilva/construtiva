@@ -7,7 +7,7 @@ import { auth } from "@/firebaseConfig";
 
 import { LoginScreen } from "../screens/LoginScreen/LoginScreen";
 import { SignUpScreen } from "../screens/SignUpScreen/SignUpScreen";
-import { HomeScreen } from "../screens/HomeScreen/HomeScreen";
+import HomeScreen from "../screens/HomeScreen/HomeScreen";
 import { RootStackParamList } from "../../types/navigation";
 import { ForgotPassword } from "../screens/ForgotPassword/ForgotPassword";
 
