@@ -13,6 +13,7 @@ import { styles } from './styles';
 export default function ProfilePortfolioScreen() {
   const router = useRouter();
   const [selectedWork, setSelectedWork] = useState<string | null>(null);
+  const [bioExpanded, setBioExpanded] = useState(false);
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
 
@@ -63,34 +64,49 @@ export default function ProfilePortfolioScreen() {
                   <Feather name="map-pin" size={17} color="#8D8D8D" />
                 </View>
                 <Text style={styles.occupation}>{professional.occupation}</Text>
+
+                {professional.secondaryOccupations && professional.secondaryOccupations.length > 0 && (
+                <View style={styles.secondaryTagsRow}>
+                  {professional.secondaryOccupations.map((tag, index) => (
+                    <View key={`${tag}-${index}`} style={styles.secondaryTag}>
+                      <Text style={styles.secondaryTagText}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
               </View>
             </View>
 
             <View style={styles.aboutCard}>
               <Text style={styles.aboutTitle}>Sobre mim</Text>
-              <ScrollView nestedScrollEnabled showsVerticalScrollIndicator style={styles.bioScroll} contentContainerStyle={styles.bioContent}>
-                <Text style={styles.bio}>{professional.bio}</Text>
-              </ScrollView>
+              <Text style={styles.bio} numberOfLines={bioExpanded ? undefined : 4}>
+                {professional.bio}
+              </Text>
+              <Pressable onPress={() => setBioExpanded((prev) => !prev)}>
+                <Text style={styles.bioToggle}>{bioExpanded ? 'Mostrar menos' : 'Mostrar mais'}</Text>
+              </Pressable>
             </View>
 
-            <View style={styles.workSection}>
-              <Text style={styles.workTitle}>Meu trabalho:</Text>
-              <View style={styles.workRows}>
-                {workRows.map((row, rowIndex) => (
-                  <ScrollView key={`work-row-${rowIndex}`} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.workRow}>
-                    {row.map((image, imageIndex) => (
-                      <Pressable key={`${image}-${imageIndex}`} accessibilityLabel="Ampliar foto do trabalho" onPress={() => setSelectedWork(image)}>
-                        <Image source={{ uri: image }} style={styles.workImage} contentFit="cover" />
-                      </Pressable>
-                    ))}
-                  </ScrollView>
-                ))}
-              </View>
+          <View style={styles.workSection}>
+            <Text style={styles.workTitle}>Meu trabalho:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.workRowsScroll}>
+                <View style={styles.workRows}>
+                  {workRows.map((row, rowIndex) => (
+                    <View key={`work-row-${rowIndex}`} style={styles.workRow}>
+                      {row.map((image, imageIndex) => (
+                        <Pressable key={`${image}-${imageIndex}`} accessibilityLabel="Ampliar foto do trabalho" onPress={() => setSelectedWork(image)}>
+                          <Image source={{ uri: image }} style={styles.workImage} contentFit="cover" />
+                        </Pressable>
+                      ))}
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
             </View>
           </View>
         </ScrollView>
 
-        <Modal visible={selectedWork !== null} transparent animationType="fade" onRequestClose={closePreview}>
+        <Modal visible={selectedWork !== null} transparent animationType="fade" onRequestClose={closePreview}>          
           <View style={styles.imageModal}>
             <Pressable style={styles.modalBackdrop} onPress={closePreview} />
             <View style={styles.imagePreviewContainer}>

@@ -3,6 +3,7 @@ export const professional = {
   name: 'Richard Santos',
   city: 'Santa Rita do Sapucaí',
   occupation: 'Pintor profissional',
+  secondaryOccupations: ['Gesseiro', 'Pedreiro', 'Marceneiro'],
   hasCnpj: true,
   avatar:
     'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=480&q=85',
