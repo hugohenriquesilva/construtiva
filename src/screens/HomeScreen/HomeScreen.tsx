@@ -9,6 +9,10 @@ import { mockProfessionals, mockFeedPosts } from './HomeScreen.mock';
 import { styles } from './HomeScreen.styles';
 import { BottomTabKey, FeedPost, Professional } from '../../../types/home';
 
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../../types/navigation';
+
 // Gera posts extras "mockados" para simular paginação ao arrastar o feed
 function generateMorePosts(page: number): FeedPost[] {
     return mockFeedPosts.map((post) => ({
@@ -18,6 +22,10 @@ function generateMorePosts(page: number): FeedPost[] {
 }
 
 export default function HomeScreen() {
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const [isLoggedIn, setIsLoggedIn] = useState(true);
+    const handleLogout = () => { setIsLoggedIn(false); };
+
     const feedListRef = useRef<FlatList<FeedPost>>(null);
 
     const [activeTab, setActiveTab] = useState<BottomTabKey>('home');
@@ -25,6 +33,12 @@ export default function HomeScreen() {
     const [page, setPage] = useState(1);
     const [refreshing, setRefreshing] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
+
+    useFocusEffect(
+        useCallback(() => {
+            setActiveTab('home');
+        }, [])
+    );
 
     const handleRefresh = useCallback(() => {
         setRefreshing(true);
@@ -64,8 +78,10 @@ export default function HomeScreen() {
         // Ao tocar na aba "Início", rola o feed de volta para o topo da tela
         if (tab === 'home') {
             feedListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        } else if (tab === 'profile') {
+            navigation.navigate('FormularioProfissional');
         }
-    }, []);
+    }, [navigation]);
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -118,6 +134,7 @@ export default function HomeScreen() {
                         </Text>
                     </View>
                 }
+
             />
 
             <BottomNavBar activeTab={activeTab} onTabPress={handleTabPress} />

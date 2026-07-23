@@ -1,9 +1,10 @@
-import { SafeAreaView } from "react-native-safe-area-context";
-import AppNavigator from "./src/navigation/AppNavigator";
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import AppNavigator from './src/navigation/AppNavigator';
+
 export default function App() {
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaProvider>
       <AppNavigator />
-    </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
