@@ -4,32 +4,45 @@ export const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     borderColor: '#E2E2E5',
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   image: {
     width: '100%',
-    height: 180,
+    height: 160,
   },
   content: {
-    padding: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontFamily: 'Poppins-Bold',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#1A1A1A',
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  date: {
+  metaLine: {
+    fontFamily: 'Poppins-Regular',
     fontSize: 12,
-    color: '#9B9B9B',
+    color: '#8A8A8E',
     marginBottom: 8,
   },
+  author: {
+    fontFamily: 'Poppins-Bold',
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  date: {
+    fontFamily: 'Poppins-Regular',
+    color: '#8A8A8E',
+  },
   excerpt: {
+    fontFamily: 'Poppins-Regular',
     fontSize: 13,
-    lineHeight: 19,
-    color: '#6E6E73',
+    color: '#4A4A4A',
+    lineHeight: 18,
   },
 });

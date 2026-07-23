@@ -13,12 +13,13 @@ export const styles = StyleSheet.create({
         marginBottom: 24,
     },
     headerTitle: {
+        fontFamily: 'Poppins-Bold',
         fontSize: 20,
-        fontWeight: '700',
         color: '#1A1A1A',
         marginLeft: 8,
     },
     sectionTitle: {
+        fontFamily: 'Poppins-Bold',
         fontSize: 16,
         fontWeight: '800',
         color: '#1A1A1A',

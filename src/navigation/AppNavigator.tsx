@@ -8,6 +8,7 @@ import { auth } from "@/firebaseConfig";
 import { LoginScreen } from "../screens/LoginScreen/LoginScreen";
 import { SignUpScreen } from "../screens/SignUpScreen/SignUpScreen";
 import HomeScreen from "../screens/HomeScreen/HomeScreen";
+import ProfessionalFormScreen from "../screens/ProfessionalFormScreen/ProfessionalFormScreen";
 import { RootStackParamList } from "../../types/navigation";
 import { ForgotPassword } from "../screens/ForgotPassword/ForgotPassword";
 
@@ -43,7 +44,10 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
-          <Stack.Screen name="Home" component={HomeScreen} />
+          <>
+            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="FormularioProfissional" component={ProfessionalFormScreen} />
+          </>
         ) : (
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
