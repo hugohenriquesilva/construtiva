@@ -1,0 +1,113 @@
+import { StyleSheet } from "react-native";
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f0f0f0",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  hero: {
+    alignItems: "center",
+    marginBottom: 32,
+  },
+  logo: {
+    width: 110,
+    height: 110,
+  },
+  appName: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#6B5CE7",
+    marginTop: 8,
+    letterSpacing: 0.5,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#333",
+    alignSelf: "flex-start",
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#666",
+    alignSelf: "flex-start",
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1.5,
+    paddingHorizontal: 14,
+    width: "100%",
+    height: 56,
+    marginBottom: 8,
+  },
+  icon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    color: "#333",
+  },
+  erro: {
+    color: "#e53935",
+    fontSize: 13,
+    alignSelf: "flex-start",
+    marginBottom: 12,
+  },
+  button: {
+    width: "100%",
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#5B4FCF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
+    shadowColor: "#5B4FCF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  successContainer: {
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  successTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#333",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  successSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 28,
+  },
+  backText: {
+    color: "#6B5CE7",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+});
