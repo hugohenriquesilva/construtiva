@@ -11,7 +11,8 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
 import { useNavigation } from '@react-navigation/native';
-
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../../types/navigation';
 import SelectField from '../../components/SelectField/SelectField';
 import ChipMultiSelect from '../../components/ChipMultiSelect/ChipMultiSelect';
 import PhotoUploadBox from '../../components/PhotoUploadBox/PhotoUploadBox';
@@ -34,8 +35,7 @@ const WHITE = 'rgba(255, 255, 255, 1)';
 const SERVICE_PHOTOS_COUNT = 6;
 
 export default function ProfessionalFormScreen() {
-  const navigation = useNavigation<any>();
-
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [form, setForm] = useState<ProfessionalFormData>({
     photoUri: null,
     isActive: true,
@@ -85,7 +85,9 @@ export default function ProfessionalFormScreen() {
             <Text style={styles.backText}>Voltar</Text>
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Pré-visualizar</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('PortfolioProfissional', { hideBottomNavBar: true })}>
+            <Text style={styles.headerTitle}>Pré-visualizar</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Foto de perfil + status */}
