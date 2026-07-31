@@ -15,7 +15,7 @@ import {
 import { db, storage, auth } from '@/firebaseConfig';
 import { ProfessionalFormData } from '../../types/professionalForm';
 
-interface PortfolioData {
+export interface PortfolioData {
     displayName: string;
     area: string | null;
     mainProfession: string | null;

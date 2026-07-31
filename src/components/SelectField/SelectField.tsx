@@ -14,6 +14,7 @@ interface SelectFieldProps {
   value: string | null;
   options: string[];
   onSelect: (value: string) => void;
+  error?: boolean;
 }
 
 export default function SelectField({
@@ -21,13 +22,14 @@ export default function SelectField({
   value,
   options,
   onSelect,
+  error = false,
 }: SelectFieldProps) {
   const [visible, setVisible] = useState(false);
 
   return (
     <View>
       <TouchableOpacity
-        style={styles.fieldButton}
+        style={[styles.fieldButton, error && styles.fieldButtonError]}
         onPress={() => setVisible(true)}
         activeOpacity={0.7}
       >

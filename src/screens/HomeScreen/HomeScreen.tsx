@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { View, Text, FlatList, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, FlatList, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import ProfessionalCard from '../../components/ProfessionalCard/ProfessionalCard';
@@ -87,7 +88,7 @@ export default function HomeScreen() {
     }, [navigation]);
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
             <StatusBar barStyle="dark-content" />
 
             <FlatList

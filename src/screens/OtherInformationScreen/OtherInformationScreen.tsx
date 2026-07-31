@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, CommonActions, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Alert, Pressable, SafeAreaView, ScrollView, StatusBar, Text, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { logoutUser } from '@/src/services/authService';
 import { useCallback, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
@@ -11,8 +12,9 @@ import { menuItems } from './OtherInformationScreen.mock';
 import { styles } from './OtherInformationScreen.styles';
 import { BottomTabKey } from '../../../types/home';
 import { RootStackParamList } from '../../../types/navigation';
-import { hasPortfolio } from '@/src/services/portfolioService';
+import { getPortfolio } from '@/src/services/portfolioService';
 import { auth, db } from '@/firebaseConfig';
+import { cpfMask } from '@/src/utils/CpfMask';
 
 function showMockAction(title: string) {
     Alert.alert(title, 'Esta ação será conectada à funcionalidade correspondente em breve.');
@@ -21,7 +23,8 @@ function showMockAction(title: string) {
 export default function OtherInformationScreen() {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [userProfile, setUserProfile] = useState<any>(null);
-    const [portfolioExists, setPortfolioExists] = useState(false);
+    const [portfolioActive, setPortfolioActive] = useState(false);
+    const [portfolioPhotoUri, setPortfolioPhotoUri] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     // Carregar perfil do usuário e status do portfólio ao abrir a tela
@@ -38,9 +41,10 @@ export default function OtherInformationScreen() {
                             setUserProfile(userSnap.data());
                         }
 
-                        // Verificar se tem portfólio
-                        const exists = await hasPortfolio(uid);
-                        setPortfolioExists(exists);
+                        // Carregar portfólio (status + foto de perfil)
+                        const portfolio = await getPortfolio(uid);
+                        setPortfolioActive(portfolio?.isActive ?? false);
+                        setPortfolioPhotoUri(portfolio?.photoUri ?? null);
                     }
                 } catch (error) {
                     console.error('Erro ao carregar dados:', error);
@@ -78,7 +82,7 @@ export default function OtherInformationScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
             <StatusBar barStyle="dark-content" />
             <View style={styles.screen}>
                 <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -92,13 +96,17 @@ export default function OtherInformationScreen() {
                     {userProfile && (
                         <Pressable style={styles.profileCard} onPress={() => showMockAction('Dados do perfil')}>
                             <View style={styles.avatar}>
-                                <Text style={styles.avatarText}>
-                                    {userProfile?.fullName?.slice(0, 2).toUpperCase() || 'XX'}
-                                </Text>
+                                {portfolioPhotoUri ? (
+                                    <Image source={{ uri: portfolioPhotoUri }} style={styles.avatarImage} />
+                                ) : (
+                                    <MaterialCommunityIcons name="account" size={40} color="#8A8D91" />
+                                )}
                             </View>
                             <View style={styles.profileInfo}>
                                 <Text style={styles.profileName}>{userProfile?.fullName}</Text>
-                                <Text style={styles.profileDetail}>{userProfile?.CPF}</Text>
+                                <Text style={styles.profileDetail}>
+                                    {userProfile?.CPF ? cpfMask(userProfile.CPF) : ''}
+                                </Text>
                                 <Text style={styles.profileDetail}>{userProfile?.email}</Text>
                             </View>
                         </Pressable>
@@ -109,7 +117,7 @@ export default function OtherInformationScreen() {
                             // Se for "Meu portfólio", mostrar status Ativo/Inativo
                             const displayStatus =
                                 item.label === 'Meu portfólio'
-                                    ? portfolioExists
+                                    ? portfolioActive
                                         ? 'Ativo'
                                         : 'Inativo'
                                     : item.status;
@@ -120,7 +128,11 @@ export default function OtherInformationScreen() {
                                     style={styles.menuButton}
                                     onPress={() => {
                                         if (item.label === 'Meu portfólio') {
-                                            navigation.navigate('FormularioProfissional');
+                                            if (portfolioActive) {
+                                                navigation.navigate('PortfolioProfissional');
+                                            } else {
+                                                navigation.navigate('FormularioProfissional');
+                                            }
                                         } else {
                                             showMockAction(item.action);
                                         }
