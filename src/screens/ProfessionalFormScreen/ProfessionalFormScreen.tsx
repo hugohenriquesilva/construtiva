@@ -7,12 +7,14 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
+  Alert
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types/navigation';
+
 import SelectField from '../../components/SelectField/SelectField';
 import ChipMultiSelect from '../../components/ChipMultiSelect/ChipMultiSelect';
 import PhotoUploadBox from '../../components/PhotoUploadBox/PhotoUploadBox';
@@ -26,7 +28,10 @@ import {
   mockSecondaryProfessions,
   mockExperienceRanges,
 } from './ProfessionalFormScreen.mock';
+import * as ImagePicker from 'expo-image-picker';
 import { ProfessionalFormData } from '../../../types/professionalForm';
+import { savePortfolio, getPortfolio } from '../../services/portfolioService';
+import { auth } from '@/firebaseConfig';
 
 const BLUE = 'rgba(91, 105, 163, 1)';
 const ORANGE = 'rgba(210, 110, 56, 1)';
@@ -36,6 +41,7 @@ const SERVICE_PHOTOS_COUNT = 6;
 
 export default function ProfessionalFormScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
   const [form, setForm] = useState<ProfessionalFormData>({
     photoUri: null,
     isActive: true,
@@ -52,6 +58,44 @@ export default function ProfessionalFormScreen() {
     servicePhotos: Array(SERVICE_PHOTOS_COUNT).fill(null),
   });
 
+  const [loading, setLoading] = useState(false);
+
+  // Carregar dados existentes quando a tela abre
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadPortfolioData = async () => {
+        try {
+          const uid = auth.currentUser?.uid;
+          if (uid) {
+            const portfolio = await getPortfolio(uid);
+            if (portfolio) {
+              // Preencher o formulário com os dados salvos
+              setForm({
+                photoUri: portfolio.photoUri,
+                isActive: portfolio.isActive,
+                area: portfolio.area,
+                mainProfession: portfolio.mainProfession,
+                secondaryProfessions: portfolio.secondaryProfessions,
+                displayName: portfolio.displayName,
+                hasCnpj: portfolio.hasCnpj,
+                cnpj: portfolio.cnpj,
+                experienceRange: portfolio.experienceRange,
+                zipCode: portfolio.zipCode,
+                radiusKm: portfolio.radiusKm,
+                aboutMe: portfolio.aboutMe,
+                servicePhotos: portfolio.servicePhotos,
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao carregar portfólio:', error);
+        }
+      };
+
+      loadPortfolioData();
+    }, [])
+  );
+
   const updateField = <K extends keyof ProfessionalFormData>(
     key: K,
     value: ProfessionalFormData[K]
@@ -59,14 +103,145 @@ export default function ProfessionalFormScreen() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSave = () => {
-    // TODO: integrar com o serviço real de atualização de perfil
-    console.log('Salvar alterações e publicar', form);
+  const handleSave = async () => {
+    try {
+      // Validação básica
+      if (!form.displayName || !form.area || !form.mainProfession) {
+        Alert.alert('Erro', 'Preencha os campos obrigatórios');
+        return;
+      }
+
+      setLoading(true);
+
+      // Salvar no Firestore + upload de fotos
+      await savePortfolio(form);
+
+      // Sucesso - voltar pra "Mais Informações"
+      Alert.alert('Sucesso!', 'Portfólio salvo com sucesso', [
+        {
+          text: 'OK',
+          onPress: () => navigation.navigate('MaisInformacoes'),
+        },
+      ]);
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível salvar o portfólio. Tente novamente.');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeactivate = () => {
-    // TODO: integrar com o serviço real de desativação de portfólio
-    console.log('Desativar meu portfólio');
+  const handleDeactivate = async () => {
+    Alert.alert(
+      'Desativar portfólio',
+      'Tem certeza que deseja desativar seu portfólio?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Desativar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              // Salvar com isActive: false
+              await savePortfolio({ ...form, isActive: false });
+              Alert.alert('Portfólio desativado', '', [
+                {
+                  text: 'OK',
+                  onPress: () => navigation.navigate('MaisInformacoes'),
+                },
+              ]);
+            } catch (error) {
+              Alert.alert('Erro', 'Não foi possível desativar o portfólio.');
+              console.error(error);
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handlePhotoPress = async (type: 'avatar' | 'service', index?: number) => {
+    Alert.alert(
+      'Escolher foto',
+      'Como você gostaria de adicionar uma foto?',
+      [
+        {
+          text: 'Câmera',
+          onPress: () => pickPhotoFromCamera(type, index),
+        },
+        {
+          text: 'Galeria',
+          onPress: () => pickPhotoFromGallery(type, index),
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const pickPhotoFromCamera = async (type: 'avatar' | 'service', index?: number) => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permissão negada', 'Você precisa permitir acesso à câmera.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: type === 'avatar' ? [1, 1] : [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        const photoUri = result.assets[0].uri;
+        if (type === 'avatar') {
+          updateField('photoUri', photoUri);
+        } else {
+          const newServicePhotos = [...form.servicePhotos];
+          newServicePhotos[index!] = photoUri;
+          updateField('servicePhotos', newServicePhotos);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível abrir a câmera.');
+      console.error(error);
+    }
+  };
+
+  const pickPhotoFromGallery = async (type: 'avatar' | 'service', index?: number) => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permissão negada', 'Você precisa permitir acesso à galeria.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: type === 'avatar' ? [1, 1] : [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        const photoUri = result.assets[0].uri;
+        if (type === 'avatar') {
+          updateField('photoUri', photoUri);
+        } else {
+          const newServicePhotos = [...form.servicePhotos];
+          newServicePhotos[index!] = photoUri;
+          updateField('servicePhotos', newServicePhotos);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível abrir a galeria.');
+      console.error(error);
+    }
   };
 
   return (
@@ -97,9 +272,7 @@ export default function ProfessionalFormScreen() {
             <PhotoUploadBox
               size={100}
               uri={form.photoUri}
-              onPress={() => {
-                // TODO: abrir seletor de imagem (expo-image-picker)
-              }}
+              onPress={() => handlePhotoPress('avatar')}
             />
           </View>
 
@@ -250,9 +423,7 @@ export default function ProfessionalFormScreen() {
                 key={index}
                 size={98}
                 uri={uri}
-                onPress={() => {
-                  // TODO: abrir seletor de imagem para a posição `index`
-                }}
+                onPress={() => handlePhotoPress('service', index)}
               />
             ))}
           </View>
