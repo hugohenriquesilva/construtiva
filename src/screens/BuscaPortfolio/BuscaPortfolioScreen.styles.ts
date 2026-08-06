@@ -1,0 +1,113 @@
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+  screen: { flex: 1, backgroundColor: '#FFFFFF' },
+  header: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    marginBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  searchRow: {
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 24,
+    flexDirection: 'row',
+    gap: 10,
+    height: 48,
+    marginHorizontal: 20,
+    marginBottom: 24,
+    paddingHorizontal: 18,
+  },
+  searchPlaceholder: {
+    color: '#9C9C9C',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  resultCard: {
+    flexDirection: 'row',
+    paddingVertical: 14,
+  },
+  separator: {
+    backgroundColor: '#EDEDED',
+    height: 1,
+  },
+  avatar: {
+    alignItems: 'center',
+    backgroundColor: '#D9D9D9',
+    borderRadius: 26,
+    height: 52,
+    justifyContent: 'center',
+    marginRight: 14,
+    width: 52,
+  },
+  resultInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  cnpjBadge: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderColor: '#B6B6B6',
+    borderRadius: 20,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 4,
+    marginBottom: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 1,
+  },
+  cnpjStar: {
+    color: '#D4AE54',
+    fontSize: 11,
+  },
+  cnpjText: {
+    color: '#7A7A7A',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  resultName: {
+    color: '#0A0A0A',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  resultOccupation: {
+    color: '#8D8D8D',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  resultDescription: {
+    color: '#9C9C9C',
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  profileButton: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: '#3559E0',
+    borderRadius: 16,
+    justifyContent: 'center',
+    marginLeft: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+  },
+  profileButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+});

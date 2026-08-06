@@ -6,4 +6,5 @@ export type RootStackParamList = {
   FormularioProfissional: undefined;
   PortfolioProfissional: { hideBackButton?: boolean; hideBottomNavBar?: boolean } | undefined;
   MaisInformacoes: undefined;
+  BuscaPortfolio: undefined;
 };
