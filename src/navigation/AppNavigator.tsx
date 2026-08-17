@@ -13,6 +13,7 @@ import { RootStackParamList } from "../../types/navigation";
 import { ForgotPassword } from "../screens/ForgotPassword/ForgotPassword";
 import ProfilePortfolioScreen from '../screens/ProfilePortfolio/ProfilePortfolioScreen';
 import OtherInformationScreen from '../screens/OtherInformationScreen/OtherInformationScreen';
+import BuscaPortfolioScreen from '../screens/BuscaPortfolio/BuscaPortfolioScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -36,9 +37,9 @@ export default function AppNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" />
+        </View>
     );
   }
 
@@ -47,6 +48,7 @@ export default function AppNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
           <>
+            <Stack.Screen name="BuscaPortfolio" component={BuscaPortfolioScreen} />
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="FormularioProfissional" component={ProfessionalFormScreen} />
             <Stack.Screen name="PortfolioProfissional" component={ProfilePortfolioScreen} />
