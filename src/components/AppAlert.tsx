@@ -19,6 +19,8 @@ interface AppAlertProps {
   messages?: string[] | null;
   buttonLabel?: string;
   onClose: () => void;
+  secondaryButtonLabel?: string;
+  onSecondaryPress?: () => void;
 }
 export function AppAlert({
   visible,
@@ -28,6 +30,8 @@ export function AppAlert({
   messages = [],
   buttonLabel = "OK",
   onClose,
+  secondaryButtonLabel,
+  onSecondaryPress,
 }: AppAlertProps) {
   return (
     <Modal transparent visible={visible} animationType="slide">
@@ -60,7 +64,17 @@ export function AppAlert({
               </>
             )}
             <View style={styles.divider} />
-            <Button title="OK" onPress={onClose} />
+            <Button title={buttonLabel} onPress={onClose} />
+            {secondaryButtonLabel && onSecondaryPress && (
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={onSecondaryPress}
+              >
+                <Text style={styles.secondaryButtonText}>
+                  {secondaryButtonLabel}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -130,5 +144,15 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#ddd",
     marginVertical: 12,
+  },
+  secondaryButton: {
+    alignItems: "center",
+    marginTop: 12,
+    paddingVertical: 8,
+  },
+  secondaryButtonText: {
+    color: "#B3261E",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

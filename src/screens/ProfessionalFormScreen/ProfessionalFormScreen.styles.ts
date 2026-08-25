@@ -25,11 +25,6 @@ export const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginLeft: 4,
   },
-  headerTitle: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 18,
-    color: '#1A1A1A',
-  },
   photoRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -68,6 +63,9 @@ export const styles = StyleSheet.create({
   textArea: {
     minHeight: 90,
     textAlignVertical: 'top',
+  },
+  inputError: {
+    borderColor: 'red',
   },
   cnpjToggleRow: {
     flexDirection: 'row',

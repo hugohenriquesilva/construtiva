@@ -4,15 +4,17 @@ import {
   Text,
   TextInput,
   Switch,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
+  Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../types/navigation';
+
 import SelectField from '../../components/SelectField/SelectField';
 import ChipMultiSelect from '../../components/ChipMultiSelect/ChipMultiSelect';
 import PhotoUploadBox from '../../components/PhotoUploadBox/PhotoUploadBox';
@@ -26,7 +28,11 @@ import {
   mockSecondaryProfessions,
   mockExperienceRanges,
 } from './ProfessionalFormScreen.mock';
+import * as ImagePicker from 'expo-image-picker';
 import { ProfessionalFormData } from '../../../types/professionalForm';
+import { savePortfolio, getPortfolio } from '../../services/portfolioService';
+import { auth } from '@/firebaseConfig';
+import { AppAlert } from '@/src/components/AppAlert';
 
 const BLUE = 'rgba(91, 105, 163, 1)';
 const ORANGE = 'rgba(210, 110, 56, 1)';
@@ -36,9 +42,10 @@ const SERVICE_PHOTOS_COUNT = 6;
 
 export default function ProfessionalFormScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
   const [form, setForm] = useState<ProfessionalFormData>({
     photoUri: null,
-    isActive: true,
+    isActive: false,
     area: null,
     mainProfession: null,
     secondaryProfessions: [],
@@ -52,21 +59,182 @@ export default function ProfessionalFormScreen() {
     servicePhotos: Array(SERVICE_PHOTOS_COUNT).fill(null),
   });
 
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Set<keyof ProfessionalFormData>>(new Set());
+  const [successModalType, setSuccessModalType] = useState<'active' | 'inactive' | null>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
+  // Carregar dados existentes quando a tela abre
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadPortfolioData = async () => {
+        try {
+          const uid = auth.currentUser?.uid;
+          if (uid) {
+            const portfolio = await getPortfolio(uid);
+            if (portfolio) {
+              // Preencher o formulário com os dados salvos
+              setForm({
+                photoUri: portfolio.photoUri,
+                isActive: portfolio.isActive,
+                area: portfolio.area,
+                mainProfession: portfolio.mainProfession,
+                secondaryProfessions: portfolio.secondaryProfessions,
+                displayName: portfolio.displayName,
+                hasCnpj: portfolio.hasCnpj,
+                cnpj: portfolio.cnpj,
+                experienceRange: portfolio.experienceRange,
+                zipCode: portfolio.zipCode,
+                radiusKm: portfolio.radiusKm,
+                aboutMe: portfolio.aboutMe,
+                servicePhotos: portfolio.servicePhotos,
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao carregar portfólio:', error);
+        }
+      };
+
+      loadPortfolioData();
+    }, [])
+  );
+
   const updateField = <K extends keyof ProfessionalFormData>(
     key: K,
     value: ProfessionalFormData[K]
   ) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setErrors((prev) => {
+      if (!prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
   };
 
-  const handleSave = () => {
-    // TODO: integrar com o serviço real de atualização de perfil
-    console.log('Salvar alterações e publicar', form);
+  const validate = (): boolean => {
+    const newErrors = new Set<keyof ProfessionalFormData>();
+
+    if (!form.photoUri) newErrors.add('photoUri');
+    if (!form.area) newErrors.add('area');
+    if (!form.mainProfession) newErrors.add('mainProfession');
+    if (!form.displayName.trim()) newErrors.add('displayName');
+    if (form.hasCnpj && !form.cnpj.trim()) newErrors.add('cnpj');
+    if (!form.experienceRange) newErrors.add('experienceRange');
+    if (!form.zipCode.trim()) newErrors.add('zipCode');
+    if (!form.aboutMe.trim()) newErrors.add('aboutMe');
+
+    setErrors(newErrors);
+    return newErrors.size === 0;
   };
 
-  const handleDeactivate = () => {
-    // TODO: integrar com o serviço real de desativação de portfólio
-    console.log('Desativar meu portfólio');
+  const handleSave = async () => {
+    if (!validate()) return;
+
+    try {
+      setLoading(true);
+
+      // Salvar no Firestore + upload de fotos
+      await savePortfolio(form);
+
+      setSuccessModalType(form.isActive ? 'active' : 'inactive');
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível salvar o portfólio. Tente novamente.');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePhotoPress = async (type: 'avatar' | 'service', index?: number) => {
+    const isEditingAvatar = type === 'avatar' && !!form.photoUri;
+
+    Alert.alert(
+      isEditingAvatar ? 'Deseja alterar sua foto?' : 'Escolher foto',
+      'Como você gostaria de alterar a sua foto?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Câmera',
+          onPress: () => pickPhotoFromCamera(type, index),
+        },
+        {
+          text: 'Galeria',
+          onPress: () => pickPhotoFromGallery(type, index),
+        },
+
+      ]
+    );
+  };
+
+  const handleDeleteServicePhoto = (index: number) => {
+    const newServicePhotos = [...form.servicePhotos];
+    newServicePhotos[index] = null;
+    updateField('servicePhotos', newServicePhotos);
+  };
+
+  const pickPhotoFromCamera = async (type: 'avatar' | 'service', index?: number) => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permissão negada', 'Você precisa permitir acesso à câmera.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: type === 'avatar' ? [1, 1] : [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        const photoUri = result.assets[0].uri;
+        if (type === 'avatar') {
+          updateField('photoUri', photoUri);
+        } else {
+          const newServicePhotos = [...form.servicePhotos];
+          newServicePhotos[index!] = photoUri;
+          updateField('servicePhotos', newServicePhotos);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível abrir a câmera.');
+      console.error(error);
+    }
+  };
+
+  const pickPhotoFromGallery = async (type: 'avatar' | 'service', index?: number) => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permissão negada', 'Você precisa permitir acesso à galeria.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: type === 'avatar' ? [1, 1] : [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        const photoUri = result.assets[0].uri;
+        if (type === 'avatar') {
+          updateField('photoUri', photoUri);
+        } else {
+          const newServicePhotos = [...form.servicePhotos];
+          newServicePhotos[index!] = photoUri;
+          updateField('servicePhotos', newServicePhotos);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível abrir a galeria.');
+      console.error(error);
+    }
   };
 
   return (
@@ -79,14 +247,10 @@ export default function ProfessionalFormScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => setShowLeaveConfirm(true)}
           >
             <Ionicons name="chevron-back" size={20} color="#1A1A1A" />
             <Text style={styles.backText}>Voltar</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => navigation.navigate('PortfolioProfissional', { hideBottomNavBar: true })}>
-            <Text style={styles.headerTitle}>Pré-visualizar</Text>
           </TouchableOpacity>
         </View>
 
@@ -97,9 +261,10 @@ export default function ProfessionalFormScreen() {
             <PhotoUploadBox
               size={100}
               uri={form.photoUri}
-              onPress={() => {
-                // TODO: abrir seletor de imagem (expo-image-picker)
-              }}
+              onPress={() => handlePhotoPress('avatar')}
+              error={errors.has('photoUri')}
+              overlayIcon={form.photoUri ? 'pencil' : undefined}
+              onOverlayPress={() => handlePhotoPress('avatar')}
             />
           </View>
 
@@ -122,6 +287,7 @@ export default function ProfessionalFormScreen() {
             value={form.area}
             options={mockAreas}
             onSelect={(v) => updateField('area', v)}
+            error={errors.has('area')}
           />
         </View>
 
@@ -133,6 +299,7 @@ export default function ProfessionalFormScreen() {
             value={form.mainProfession}
             options={mockMainProfessions}
             onSelect={(v) => updateField('mainProfession', v)}
+            error={errors.has('mainProfession')}
           />
         </View>
 
@@ -152,7 +319,7 @@ export default function ProfessionalFormScreen() {
             Nome que você quer que apareça no perfil
           </Text>
           <TextInput
-            style={styles.textInput}
+            style={[styles.textInput, errors.has('displayName') && styles.inputError]}
             placeholder="Como os clientes vão te ver"
             placeholderTextColor="#9B9B9B"
             value={form.displayName}
@@ -175,7 +342,7 @@ export default function ProfessionalFormScreen() {
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>CNPJ</Text>
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, errors.has('cnpj') && styles.inputError]}
               placeholder="00.000.000/0000-00"
               placeholderTextColor="#9B9B9B"
               keyboardType="number-pad"
@@ -193,6 +360,7 @@ export default function ProfessionalFormScreen() {
             value={form.experienceRange}
             options={mockExperienceRanges}
             onSelect={(v) => updateField('experienceRange', v)}
+            error={errors.has('experienceRange')}
           />
         </View>
 
@@ -200,7 +368,7 @@ export default function ProfessionalFormScreen() {
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>CEP de atuação</Text>
           <TextInput
-            style={styles.textInput}
+            style={[styles.textInput, errors.has('zipCode') && styles.inputError]}
             placeholder="00000-000"
             placeholderTextColor="#9B9B9B"
             keyboardType="number-pad"
@@ -232,7 +400,11 @@ export default function ProfessionalFormScreen() {
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Sobre mim:</Text>
           <TextInput
-            style={[styles.textInput, styles.textArea]}
+            style={[
+              styles.textInput,
+              styles.textArea,
+              errors.has('aboutMe') && styles.inputError,
+            ]}
             placeholder="Conte sua experiência e seus diferenciais"
             placeholderTextColor="#9B9B9B"
             multiline
@@ -250,9 +422,9 @@ export default function ProfessionalFormScreen() {
                 key={index}
                 size={98}
                 uri={uri}
-                onPress={() => {
-                  // TODO: abrir seletor de imagem para a posição `index`
-                }}
+                onPress={() => handlePhotoPress('service', index)}
+                overlayIcon={uri ? 'trash' : undefined}
+                onOverlayPress={() => handleDeleteServicePhoto(index)}
               />
             ))}
           </View>
@@ -265,13 +437,54 @@ export default function ProfessionalFormScreen() {
             colors={[BLUE, ORANGE]}
             onPress={handleSave}
           />
-          <GradientButton
-            label="Desativar meu portfólio"
-            colors={[ORANGE, ORANGE]}
-            onPress={handleDeactivate}
-          />
         </View>
       </ScrollView>
+
+      <AppAlert
+        visible={successModalType !== null}
+        character={
+          successModalType === 'inactive'
+            ? require('@/assets/images/chateado.png')
+            : require('@/assets/images/deuCerto.png')
+        }
+        title={
+          successModalType === 'inactive'
+            ? 'Que pena que desativou seu portifólio!'
+            : 'Parabéns por ativar o seu portifólio'
+        }
+        subTitle={null}
+        messages={
+          successModalType === 'inactive'
+            ? [
+              'Ninguém poderá mais ver os seus serviços.',
+              'Seu portifólio deverá aparecer como desativado.',
+            ]
+            : [
+              'Seu portfólio foi publicado',
+              'Outras pessoas já podem ver as informações que você cadastrou',
+              'Seu portifólio deverá aparecer como ativado.',
+            ]
+        }
+        onClose={() => {
+          setSuccessModalType(null);
+          navigation.navigate('MaisInformacoes');
+        }}
+      />
+
+      <AppAlert
+        visible={showLeaveConfirm}
+        character={require('@/assets/images/cuidado.png')}
+        title="Tem certeza que deseja sair sem salvar as informações?"
+        subTitle={null}
+        messages={null}
+        buttonLabel="Cancelar"
+        onClose={() => setShowLeaveConfirm(false)}
+        secondaryButtonLabel="Sair sem Salvar"
+        onSecondaryPress={() => {
+          setShowLeaveConfirm(false);
+          navigation.goBack();
+        }}
+      />
     </SafeAreaView>
   );
 }

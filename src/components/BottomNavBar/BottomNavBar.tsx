@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomTabKey } from '../../../types/home';
 import { styles } from './BottomNavBar.styles';
@@ -22,8 +23,10 @@ export default function BottomNavBar({
   activeTab,
   onTabPress,
 }: BottomNavBarProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { marginBottom: 16 + insets.bottom }]}>
       {TABS.map((tab) => {
         const isActive = tab.key === activeTab;
         return (

@@ -11,6 +11,9 @@ export const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
+  fieldButtonError: {
+    borderColor: 'red',
+  },
   fieldText: {
     fontFamily: 'Poppins-SemiBold',
     fontSize: 15,
