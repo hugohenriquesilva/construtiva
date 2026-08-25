@@ -189,9 +189,6 @@ export default function ProfilePortfolioScreen() {
                                 colors={COVER_COLORS}
                                 onPress={() => navigation.navigate('FormularioProfissional')}
                             />
-                            <Text style={styles.editHint}>
-                                Você pode editar seu portfólio a qualquer momento
-                            </Text>
                         </View>
                     </View>
                 </ScrollView>
