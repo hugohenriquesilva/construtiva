@@ -80,7 +80,7 @@ export default function HomeScreen() {
         if (tab === 'home') {
             feedListRef.current?.scrollToOffset({ offset: 0, animated: true });
         } else if (tab === 'profile') {
-            navigation.navigate('PortfolioProfissional', { hideBackButton: true });
+            navigation.navigate('BuscaPortfolio');
         }
         else if (tab === 'menu') {
             navigation.navigate('MaisInformacoes');

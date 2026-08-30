@@ -27,10 +27,12 @@ export const styles = StyleSheet.create({
     marginBottom: 24,
     paddingHorizontal: 18,
   },
-  searchPlaceholder: {
-    color: '#9C9C9C',
+  searchInput: {
+    color: '#1A1A1A',
+    flex: 1,
     fontSize: 14,
     fontWeight: '600',
+    padding: 0,
   },
   listContent: {
     paddingHorizontal: 20,
@@ -51,6 +53,11 @@ export const styles = StyleSheet.create({
     height: 52,
     justifyContent: 'center',
     marginRight: 14,
+    overflow: 'hidden',
+    width: 52,
+  },
+  avatarImage: {
+    height: 52,
     width: 52,
   },
   resultInfo: {
@@ -109,5 +116,12 @@ export const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
+  },
+  emptyMessage: {
+    color: '#9C9C9C',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 24,
+    textAlign: 'center',
   },
 });

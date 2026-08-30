@@ -1,59 +1,150 @@
-import React from 'react';
-import { View, Text, FlatList, Pressable, SafeAreaView, StatusBar } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Feather } from "@expo/vector-icons";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { doc, getDoc } from "firebase/firestore";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Pressable,
+  StatusBar,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import BottomNavBar from '../../components/BottomNavBar/BottomNavBar';
-import { mockResults, PortfolioResult } from './BuscaPortfolioScreen.mock';
-import { styles } from './BuscaPortfolioScreen.styles';
-import { BottomTabKey } from '../../../types/home';
-import { RootStackParamList } from '../../../types/navigation';
+import { auth, db } from "@/firebaseConfig";
+import { getClientLocation } from "@/src/services/locationService";
+import {
+  searchProfessionalsByGeoHash,
+  ProfessionalSearchResult,
+} from "@/src/services/searchService";
+import { BottomTabKey } from "../../../types/home";
+import { RootStackParamList } from "../../../types/navigation";
+import BottomNavBar from "../../components/BottomNavBar/BottomNavBar";
+import { styles } from "./BuscaPortfolioScreen.styles";
 
 export default function BuscaPortfolioScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [userGeohash, setUserGeohash] = useState<string | null>(null);
+  const [results, setResults] = useState<ProfessionalSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [emptyMessage, setEmptyMessage] = useState<string | null>(null);
+
+  // Se o cliente ainda não cadastrou o CEP, avisa e leva para o cadastro.
+  // Aproveita para carregar o geohash do cliente, usado na busca.
+  useFocusEffect(
+    useCallback(() => {
+      const checkLocation = async () => {
+        const uid = auth.currentUser?.uid;
+        if (!uid) return;
+
+        const userSnap = await getDoc(doc(db, "users", uid));
+        if (userSnap.exists() && userSnap.data().location === true) {
+          const clientLocation = await getClientLocation(uid);
+          setUserGeohash(clientLocation?.geohash ?? null);
+          return;
+        }
+
+        Alert.alert(
+          "CEP não cadastrado",
+          "Você ainda não possui um CEP cadastrado. Cadastre seu CEP para encontrar profissionais próximos a você",
+          [
+            {
+              text: "OK",
+              onPress: () =>
+                navigation.navigate("MaisInformacoes", { focusCep: true }),
+            },
+          ],
+          { cancelable: false }
+        );
+      };
+
+      checkLocation();
+    }, [navigation])
+  );
+
+  // Busca conforme o usuário digita (com debounce), usando o geohash do cliente
+  useEffect(() => {
+    const profession = searchQuery.trim();
+
+    if (!profession || !userGeohash) {
+      setResults([]);
+      setEmptyMessage(null);
+      setSearching(false);
+      return;
+    }
+
+    setSearching(true);
+    const timeout = setTimeout(async () => {
+      const response = await searchProfessionalsByGeoHash(profession, userGeohash);
+      setResults(response.results);
+      setEmptyMessage(response.results.length === 0 ? response.message ?? null : null);
+      setSearching(false);
+    }, 400);
+
+    return () => clearTimeout(timeout);
+  }, [searchQuery, userGeohash]);
 
   const handleTabPress = (tab: BottomTabKey) => {
-    if (tab === 'home') {
-      navigation.navigate('Home');
-    } else if (tab === 'profile') {
-      navigation.navigate('PortfolioProfissional', { hideBackButton: true });
-    } else if (tab === 'menu') {
-      navigation.navigate('MaisInformacoes');
+    if (tab === "home") {
+      navigation.navigate("Home");
+    } else if (tab === "profile") {
+      // já está na tela de busca, não faz nada
+    } else if (tab === "menu") {
+      navigation.navigate("MaisInformacoes");
     }
   };
 
-  const renderItem = ({ item }: { item: PortfolioResult }) => (
-    <View style={styles.resultCard}>
-      <View style={styles.avatar}>
-        <Feather name="user" size={22} color="#FFFFFF" />
-      </View>
+  const renderItem = ({ item }: { item: ProfessionalSearchResult }) => {
+    const occupations = [item.mainProfession, ...item.secondaryProfessions].filter(Boolean);
 
-      <View style={styles.resultInfo}>
-        {item.hasCnpj && (
-          <View style={styles.cnpjBadge}>
-            <Text style={styles.cnpjStar}>★</Text>
-            <Text style={styles.cnpjText}>Com CNPJ</Text>
-          </View>
-        )}
-        <Text style={styles.resultName}>{item.name}</Text>
-        <Text style={styles.resultOccupation}>{item.occupations.join(' | ')}</Text>
-        <Text style={styles.resultDescription} numberOfLines={2}>
-          {item.description}
-        </Text>
-      </View>
+    return (
+      <View style={styles.resultCard}>
+        <View style={styles.avatar}>
+          {item.photoUri ? (
+            <Image source={{ uri: item.photoUri }} style={styles.avatarImage} />
+          ) : (
+            <Feather name="user" size={22} color="#FFFFFF" />
+          )}
+        </View>
 
-      <Pressable
-        style={styles.profileButton}
-        onPress={() => navigation.navigate('PortfolioProfissional', { hideBackButton: false })}
-      >
-        <Text style={styles.profileButtonText}>Perfil</Text>
-      </Pressable>
-    </View>
-  );
+        <View style={styles.resultInfo}>
+          {item.hasCnpj && (
+            <View style={styles.cnpjBadge}>
+              <Text style={styles.cnpjStar}>★</Text>
+              <Text style={styles.cnpjText}>Com CNPJ</Text>
+            </View>
+          )}
+          <Text style={styles.resultName}>{item.displayName}</Text>
+          <Text style={styles.resultOccupation}>{occupations.join(" | ")}</Text>
+          <Text style={styles.resultDescription} numberOfLines={2}>
+            {item.aboutMe}
+          </Text>
+        </View>
+
+        <Pressable
+          style={styles.profileButton}
+          onPress={() =>
+            navigation.navigate("PortfolioProfissional", {
+              hideBackButton: false,
+              professionalUid: item.uid,
+            })
+          }
+        >
+          <Text style={styles.profileButtonText}>Perfil</Text>
+        </Pressable>
+      </View>
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.screen}>
         <View style={styles.header}>
@@ -61,18 +152,30 @@ export default function BuscaPortfolioScreen() {
           <Text style={styles.headerTitle}>Buscar portfólio</Text>
         </View>
 
-        <Pressable style={styles.searchRow}>
+        <View style={styles.searchRow}>
           <Feather name="search" size={16} color="#9C9C9C" />
-          <Text style={styles.searchPlaceholder}>Pesquisar tipo de profissional</Text>
-        </Pressable>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Pesquisar tipo de profissional"
+            placeholderTextColor="#9C9C9C"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searching && <ActivityIndicator size="small" color="#9C9C9C" />}
+        </View>
 
         <FlatList
-          data={mockResults}
-          keyExtractor={(item) => item.id}
+          data={results}
+          keyExtractor={(item) => item.uid}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ListEmptyComponent={
+            emptyMessage ? (
+              <Text style={styles.emptyMessage}>{emptyMessage}</Text>
+            ) : null
+          }
         />
       </View>
 

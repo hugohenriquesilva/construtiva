@@ -15,4 +15,4 @@ export interface FeedPost {
   imageUrl: string;
 }
 
-export type BottomTabKey = 'home' | 'documents' | 'profile' | 'tools' | 'menu';
+export type BottomTabKey = 'home' | 'documents' | 'profile' | 'menu';

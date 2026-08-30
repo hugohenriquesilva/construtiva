@@ -45,7 +45,11 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        key={user ? "authenticated" : "guest"}
+        screenOptions={{ headerShown: false }}
+        initialRouteName={user ? "Home" : "Login"}
+      >
         {user ? (
           <>
             <Stack.Screen name="BuscaPortfolio" component={BuscaPortfolioScreen} />

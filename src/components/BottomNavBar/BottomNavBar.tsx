@@ -15,7 +15,6 @@ const TABS: { key: BottomTabKey; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'home', icon: 'home-outline' },
   { key: 'documents', icon: 'document-text-outline' },
   { key: 'profile', icon: 'person-outline' },
-  { key: 'tools', icon: 'construct-outline' },
   { key: 'menu', icon: 'menu-outline' },
 ];
 
@@ -39,7 +38,7 @@ export default function BottomNavBar({
             <Ionicons
               name={tab.icon}
               size={24}
-              color={isActive ? '#1A1A1A' : '#9B9B9B'}
+              color={isActive ? 'rgba(91, 105, 163, 1)' : '#9B9B9B'}
             />
           </TouchableOpacity>
         );

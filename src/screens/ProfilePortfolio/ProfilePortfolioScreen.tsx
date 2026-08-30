@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
@@ -6,7 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
@@ -15,7 +15,7 @@ import GradientButton from '../../components/GradientButton/GradientButton';
 import { styles } from './ProfilePortfolio.styles';
 import { BottomTabKey } from '../../../types/home';
 import { RootStackParamList } from '../../../types/navigation';
-import { getPortfolio, PortfolioData } from '../../services/portfolioService';
+import { getPortfolio, isPortfolioLikedByUser, togglePortfolioLike, PortfolioData } from '../../services/portfolioService';
 import { auth } from '@/firebaseConfig';
 
 const COVER_COLORS: [string, string] = ['rgba(91, 105, 163, 1)', 'rgba(210, 110, 56, 1)'];
@@ -32,30 +32,54 @@ export default function ProfilePortfolioScreen() {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const route = useRoute<RouteProp<RootStackParamList, 'PortfolioProfissional'>>();
     const hideBackButton = route.params?.hideBackButton ?? false;
+    const professionalUid = route.params?.professionalUid ?? null;
+    const isOwnProfile = !professionalUid;
     const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
     const [selectedWork, setSelectedWork] = useState<string | null>(null);
     const [bioExpanded, setBioExpanded] = useState(false);
+    const [liked, setLiked] = useState(false);
+    const [likesCount, setLikesCount] = useState(0);
+    const [likeSaving, setLikeSaving] = useState(false);
     const scale = useSharedValue(1);
     const savedScale = useSharedValue(1);
 
-    // Carregar o portfólio do usuário logado; se não existir ou estiver
-    // desativado, manda pro formulário em vez de mostrar a tela vazia.
+    // Carregar o portfólio: o próprio (se não existir ou estiver desativado,
+    // manda pro formulário) ou o de outro profissional (se indisponível, volta).
     useFocusEffect(
         useCallback(() => {
             const loadPortfolio = async () => {
-                const uid = auth.currentUser?.uid;
-                if (!uid) return;
+                const targetUid = professionalUid ?? auth.currentUser?.uid;
+                if (!targetUid) return;
 
-                const data = await getPortfolio(uid);
+                setPortfolio(null);
+                const data = await getPortfolio(targetUid);
+
+                if (isOwnProfile) {
+                    if (!data || !data.isActive) {
+                        navigation.replace('FormularioProfissional');
+                        return;
+                    }
+                    setPortfolio(data);
+                    setLikesCount(data.likesCount ?? 0);
+                    return;
+                }
+
                 if (!data || !data.isActive) {
-                    navigation.replace('FormularioProfissional');
+                    Alert.alert('Perfil indisponível', 'Este profissional não está mais disponível.');
+                    navigation.goBack();
                     return;
                 }
                 setPortfolio(data);
+                setLikesCount(data.likesCount ?? 0);
+
+                const currentUid = auth.currentUser?.uid;
+                if (currentUid) {
+                    setLiked(await isPortfolioLikedByUser(targetUid, currentUid));
+                }
             };
 
             loadPortfolio();
-        }, [navigation])
+        }, [navigation, professionalUid, isOwnProfile])
     );
 
     const pinchGesture = Gesture.Pinch()
@@ -76,11 +100,32 @@ export default function ProfilePortfolioScreen() {
         setSelectedWork(null);
     };
 
+    async function handleToggleLike() {
+        const currentUid = auth.currentUser?.uid;
+        if (!currentUid || !professionalUid || likeSaving) return;
+
+        const nextLiked = !liked;
+        setLikeSaving(true);
+        setLiked(nextLiked);
+        setLikesCount((prev) => prev + (nextLiked ? 1 : -1));
+
+        try {
+            await togglePortfolioLike(professionalUid, currentUid, liked);
+        } catch (error) {
+            console.error('Erro ao curtir portfólio:', error);
+            setLiked(liked);
+            setLikesCount((prev) => prev + (nextLiked ? -1 : 1));
+            Alert.alert('Erro', 'Não foi possível curtir o portfólio. Tente novamente.');
+        } finally {
+            setLikeSaving(false);
+        }
+    }
+
     const handleTabPress = (tab: BottomTabKey) => {
         if (tab === 'home') {
             navigation.navigate('Home');
         } else if (tab === 'profile') {
-            navigation.navigate('PortfolioProfissional', { hideBackButton: true });
+            navigation.navigate('BuscaPortfolio');
         } else if (tab === 'menu') {
             navigation.navigate('MaisInformacoes');
         }
@@ -142,6 +187,22 @@ export default function ProfilePortfolioScreen() {
 
                                 <Text style={styles.occupation}>{portfolio.mainProfession}</Text>
 
+                                {!isOwnProfile && (
+                                    <Pressable
+                                        accessibilityLabel={liked ? 'Descurtir portfólio' : 'Curtir portfólio'}
+                                        style={styles.likeRow}
+                                        onPress={handleToggleLike}
+                                        disabled={likeSaving}
+                                    >
+                                        <Ionicons
+                                            name={liked ? 'heart' : 'heart-outline'}
+                                            size={22}
+                                            color={liked ? '#E0245E' : '#8D8D8D'}
+                                        />
+                                        <Text style={styles.likeCount}>{likesCount}</Text>
+                                    </Pressable>
+                                )}
+
                                 {portfolio.secondaryProfessions.length > 0 && (
                                     <View style={styles.secondaryTagsRow}>
                                         {portfolio.secondaryProfessions.map((tag, index) => (
@@ -183,13 +244,15 @@ export default function ProfilePortfolioScreen() {
                             </View>
                         )}
 
-                        <View style={styles.editButtonWrapper}>
-                            <GradientButton
-                                label="Editar meu portfólio"
-                                colors={COVER_COLORS}
-                                onPress={() => navigation.navigate('FormularioProfissional')}
-                            />
-                        </View>
+                        {isOwnProfile && (
+                            <View style={styles.editButtonWrapper}>
+                                <GradientButton
+                                    label="Editar meu portfólio"
+                                    colors={COVER_COLORS}
+                                    onPress={() => navigation.navigate('FormularioProfissional')}
+                                />
+                            </View>
+                        )}
                     </View>
                 </ScrollView>
 

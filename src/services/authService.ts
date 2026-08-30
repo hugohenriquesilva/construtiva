@@ -3,12 +3,13 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   signInWithPopup,
+  signInWithCredential,
   GoogleAuthProvider,
   User,
   sendEmailVerification,
   sendPasswordResetEmail,
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
 
 const googleProvider = new GoogleAuthProvider();
@@ -56,11 +57,29 @@ export async function signUp(data: SignUpData) {
       birthday: data.birthday,
       email: data.email,
       createdAt: new Date().toISOString(),
+      location: false,
     });
   } catch (error) {
     console.log(error);
     throw error; // repassa pro componente tratar
   }
+}
+
+// Cria o documento em "users" no primeiro login (login social não passa pelo signUp)
+async function ensureUserProfile(user: User): Promise<void> {
+  const userRef = doc(db, "users", user.uid);
+  const snap = await getDoc(userRef);
+  if (snap.exists()) return;
+
+  await setDoc(userRef, {
+    fullName: user.displayName ?? "",
+    CPF: "",
+    phoneNumber: user.phoneNumber ?? "",
+    birthday: "",
+    email: user.email ?? "",
+    createdAt: new Date().toISOString(),
+    location: false,
+  });
 }
 
 export async function resetPassword(email: string): Promise<void> {
@@ -71,13 +90,23 @@ export async function logoutUser(): Promise<void> {
   await signOut(auth);
 }
 
-export async function loginWithGoogle() {
+// Login com Google via popup (funciona apenas na Web)
+export async function loginWithGoogle(): Promise<User> {
   try {
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
+    await ensureUserProfile(result.user);
     return result.user;
   } catch (error: any) {
     console.error("ERRO COMPLETO:", error);
     throw error;
   }
+}
+
+// Login com Google via id_token (fluxo nativo, iOS/Android, obtido pelo expo-auth-session)
+export async function loginWithGoogleIdToken(idToken: string): Promise<User> {
+  const credential = GoogleAuthProvider.credential(idToken);
+  const result = await signInWithCredential(auth, credential);
+  await ensureUserProfile(result.user);
+  return result.user;
 }

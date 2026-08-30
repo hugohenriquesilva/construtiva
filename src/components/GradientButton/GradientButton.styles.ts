@@ -7,6 +7,9 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  gradientDisabled: {
+    opacity: 0.5,
+  },
   text: {
     fontFamily: 'Poppins-Bold',
     fontSize: 16,

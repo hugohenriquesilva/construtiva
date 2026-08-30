@@ -4,7 +4,7 @@ export type RootStackParamList = {
   Home: undefined;
   ForgotPassword: undefined;
   FormularioProfissional: undefined;
-  PortfolioProfissional: { hideBackButton?: boolean } | undefined;
-  MaisInformacoes: undefined;
+  PortfolioProfissional: { hideBackButton?: boolean; professionalUid?: string } | undefined;
+  MaisInformacoes: { focusCep?: boolean } | undefined;
   BuscaPortfolio: undefined;
 };

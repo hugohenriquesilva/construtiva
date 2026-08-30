@@ -18,10 +18,10 @@ import {
 } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../../types/navigation";
 import IconGoogle from "@/assets/images/IconGoogle.png";
-import IconFacebook from "@/assets/images/IconFacebook.png";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/firebaseConfig";
 import { loginUser } from "@/src/services/authService";
+import { useGoogleAuth } from "@/src/hooks/useGoogleAuth";
 
 export function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -29,8 +29,14 @@ export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation<any>();
   const [erro, setErro] = useState<string | null>(null);
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  const { signIn: signInWithGoogle, ready: googleReady } = useGoogleAuth({
+    onError: () => setErro("Não foi possível entrar com o Google. Tente novamente."),
+  });
 
   async function handleLogin(email: string, senha: string) {
+    setLoggingIn(true);
     try {
       await loginUser(email, senha);
     } catch (error: any) {
@@ -47,6 +53,8 @@ export function LoginScreen() {
       } else {
         setErro("Erro ao fazer login. Tente novamente.");
       }
+    } finally {
+      setLoggingIn(false);
     }
   }
   return (
@@ -91,7 +99,12 @@ export function LoginScreen() {
           <Text style={{ color: "red", textAlign: "center" }}>{erro}</Text>
         )}
 
-        <Button title="Login" onPress={() => handleLogin(email, senha)} />
+        <Button
+          title="Login"
+          onPress={() => handleLogin(email, senha)}
+          loading={loggingIn}
+          loadingTitle="Logando..."
+        />
 
         <View style={LoginStyles.divider}>
           <View style={LoginStyles.line} />
@@ -99,8 +112,9 @@ export function LoginScreen() {
           <View style={LoginStyles.line} />
         </View>
         <View style={LoginStyles.containerIcons}>
-          <Image source={IconGoogle} style={LoginStyles.iconStart} />
-          <Image source={IconFacebook} style={LoginStyles.iconStart} />
+          <TouchableOpacity onPress={signInWithGoogle} disabled={!googleReady}>
+            <Image source={IconGoogle} style={LoginStyles.iconStart} />
+          </TouchableOpacity>
         </View>
         {/* CADASTRO */}
         <View style={LoginStyles.ContainerRegister}>

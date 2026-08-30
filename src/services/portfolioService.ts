@@ -5,6 +5,8 @@ import {
     getDoc,
     updateDoc,
     deleteDoc,
+    increment,
+    writeBatch,
 } from 'firebase/firestore';
 import {
     ref,
@@ -24,12 +26,16 @@ export interface PortfolioData {
     cnpj: string;
     experienceRange: string | null;
     zipCode: string;
+    street: string;
+    neighborhood: string;
+    city: string;
     radiusKm: number;
     aboutMe: string;
     photoUri: string | null;
     servicePhotos: (string | null)[];
     isActive: boolean;
     updatedAt: string;
+    likesCount?: number;
 }
 
 // Salvar ou atualizar portfólio
@@ -66,6 +72,9 @@ export async function savePortfolio(formData: ProfessionalFormData): Promise<voi
             cnpj: formData.cnpj,
             experienceRange: formData.experienceRange,
             zipCode: formData.zipCode,
+            street: formData.street,
+            neighborhood: formData.neighborhood,
+            city: formData.city,
             radiusKm: formData.radiusKm,
             aboutMe: formData.aboutMe,
             photoUri: photoUrl,
@@ -136,6 +145,34 @@ async function uploadImage(
         console.error(`Erro ao fazer upload de ${type}:`, error);
         throw error;
     }
+}
+
+// Verificar se o usuário logado já curtiu o portfólio
+export async function isPortfolioLikedByUser(portfolioUid: string, userUid: string): Promise<boolean> {
+    const likeRef = doc(db, 'portfolios', portfolioUid, 'likes', userUid);
+    const snap = await getDoc(likeRef);
+    return snap.exists();
+}
+
+// Curtir ou descurtir o portfólio, mantendo o contador em portfolios/{uid}.likesCount em sincronia
+export async function togglePortfolioLike(
+    portfolioUid: string,
+    userUid: string,
+    currentlyLiked: boolean
+): Promise<void> {
+    const likeRef = doc(db, 'portfolios', portfolioUid, 'likes', userUid);
+    const portfolioRef = doc(db, 'portfolios', portfolioUid);
+    const batch = writeBatch(db);
+
+    if (currentlyLiked) {
+        batch.delete(likeRef);
+        batch.update(portfolioRef, { likesCount: increment(-1) });
+    } else {
+        batch.set(likeRef, { uid: userUid, likedAt: new Date().toISOString() });
+        batch.update(portfolioRef, { likesCount: increment(1) });
+    }
+
+    await batch.commit();
 }
 
 // Deletar portfólio e suas imagens

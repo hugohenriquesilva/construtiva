@@ -18,6 +18,8 @@ export const styles = StyleSheet.create({
     locationRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 6 },
     city: { color: '#7D7D7D', fontSize: 16, fontWeight: '600' },
     occupation: { color: '#7D7D7D', fontSize: 16, fontWeight: '600', marginTop: 10 },
+    likeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
+    likeCount: { color: '#7D7D7D', fontSize: 15, fontWeight: '600' },
     cnpjBadge: { position: 'absolute', top: 14, right: 24, borderWidth: 1.5, borderColor: '#B6B6B6', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FFFFFF' },
     star: { color: '#D4AE54', fontSize: 13 },
     cnpjText: { color: '#7A7A7A', fontSize: 12, fontWeight: '600' },

@@ -31,6 +31,9 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { ProfessionalFormData } from '../../../types/professionalForm';
 import { savePortfolio, getPortfolio } from '../../services/portfolioService';
+import { fetchAddressByCep } from '../../services/cepService';
+import { geocodeAddress, saveUserLocation, Coordinates } from '../../services/locationService';
+import { fetchGeohash } from '../../services/geohashService';
 import { auth } from '@/firebaseConfig';
 import { AppAlert } from '@/src/components/AppAlert';
 
@@ -54,12 +57,18 @@ export default function ProfessionalFormScreen() {
     cnpj: '',
     experienceRange: null,
     zipCode: '',
+    street: '',
+    neighborhood: '',
+    city: '',
     radiusKm: 20,
     aboutMe: '',
     servicePhotos: Array(SERVICE_PHOTOS_COUNT).fill(null),
   });
 
   const [loading, setLoading] = useState(false);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [coords, setCoords] = useState<Coordinates | null>(null);
+  const [geohash, setGeohash] = useState<string | null>(null);
   const [errors, setErrors] = useState<Set<keyof ProfessionalFormData>>(new Set());
   const [successModalType, setSuccessModalType] = useState<'active' | 'inactive' | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -85,6 +94,9 @@ export default function ProfessionalFormScreen() {
                 cnpj: portfolio.cnpj,
                 experienceRange: portfolio.experienceRange,
                 zipCode: portfolio.zipCode,
+                street: portfolio.street,
+                neighborhood: portfolio.neighborhood,
+                city: portfolio.city,
                 radiusKm: portfolio.radiusKm,
                 aboutMe: portfolio.aboutMe,
                 servicePhotos: portfolio.servicePhotos,
@@ -123,10 +135,56 @@ export default function ProfessionalFormScreen() {
     if (form.hasCnpj && !form.cnpj.trim()) newErrors.add('cnpj');
     if (!form.experienceRange) newErrors.add('experienceRange');
     if (!form.zipCode.trim()) newErrors.add('zipCode');
+    if (!form.street.trim()) newErrors.add('street');
+    if (!form.neighborhood.trim()) newErrors.add('neighborhood');
+    if (!form.city.trim()) newErrors.add('city');
     if (!form.aboutMe.trim()) newErrors.add('aboutMe');
 
     setErrors(newErrors);
     return newErrors.size === 0;
+  };
+
+  const handleZipCodeChange = async (value: string) => {
+    updateField('zipCode', cepMask(value));
+    setCoords(null);
+    setGeohash(null);
+
+    const digits = value.replace(/\D/g, '');
+    if (digits.length !== 8) return;
+
+    setCepLoading(true);
+    try {
+      const address = await fetchAddressByCep(digits);
+
+      if (!address) {
+        Alert.alert(
+          'CEP não encontrado',
+          'Não foi possível encontrar o endereço. Preencha rua, bairro e cidade manualmente.'
+        );
+        return;
+      }
+
+      updateField('street', address.street);
+      updateField('neighborhood', address.neighborhood);
+      updateField('city', address.city);
+
+      const newCoords = await geocodeAddress({
+        street: address.street,
+        neighborhood: address.neighborhood,
+        city: address.city,
+        zipCode: value,
+      });
+
+      if (!newCoords) return;
+      setCoords(newCoords);
+
+      const newGeohash = await fetchGeohash(newCoords.latitude, newCoords.longitude);
+      setGeohash(newGeohash);
+
+      Alert.alert('Sucesso', 'Endereço encontrado com sucesso');
+    } finally {
+      setCepLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -137,6 +195,35 @@ export default function ProfessionalFormScreen() {
 
       // Salvar no Firestore + upload de fotos
       await savePortfolio(form);
+
+      // Salvar a localização (lat/lon/geohash) já resolvida ao digitar o CEP
+      // (não bloqueia o sucesso do save principal)
+      try {
+        const uid = auth.currentUser?.uid;
+        let locationCoords = coords;
+        let locationGeohash = geohash;
+
+        if (!locationCoords) {
+          locationCoords = await geocodeAddress({
+            street: form.street,
+            neighborhood: form.neighborhood,
+            city: form.city,
+            zipCode: form.zipCode,
+          });
+          locationGeohash = locationCoords
+            ? await fetchGeohash(locationCoords.latitude, locationCoords.longitude)
+            : null;
+        }
+
+        console.log('[handleSave] uid:', uid, 'locationCoords:', locationCoords, 'locationGeohash:', locationGeohash, 'radiusKm:', form.radiusKm);
+
+        if (uid && locationCoords) {
+          await saveUserLocation(uid, locationCoords.latitude, locationCoords.longitude, locationGeohash, form.radiusKm);
+          console.log('[handleSave] localização salva com sucesso');
+        }
+      } catch (error: any) {
+        console.error('Erro ao salvar localização:', error?.message ?? error, error?.code);
+      }
 
       setSuccessModalType(form.isActive ? 'active' : 'inactive');
     } catch (error) {
@@ -373,9 +460,49 @@ export default function ProfessionalFormScreen() {
             placeholderTextColor="#9B9B9B"
             keyboardType="number-pad"
             value={form.zipCode}
-            onChangeText={(v) => updateField('zipCode', cepMask(v))}
+            onChangeText={handleZipCodeChange}
           />
+          {cepLoading && (
+            <Text style={styles.label}>Buscando endereço...</Text>
+          )}
         </View>
+
+        {form.zipCode.replace(/\D/g, '').length === 8 && (
+          <>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Rua</Text>
+              <TextInput
+                style={[styles.textInput, errors.has('street') && styles.inputError]}
+                placeholder="Nome da rua"
+                placeholderTextColor="#9B9B9B"
+                value={form.street}
+                onChangeText={(v) => updateField('street', v)}
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Bairro</Text>
+              <TextInput
+                style={[styles.textInput, errors.has('neighborhood') && styles.inputError]}
+                placeholder="Bairro"
+                placeholderTextColor="#9B9B9B"
+                value={form.neighborhood}
+                onChangeText={(v) => updateField('neighborhood', v)}
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Cidade</Text>
+              <TextInput
+                style={[styles.textInput, errors.has('city') && styles.inputError]}
+                placeholder="Cidade"
+                placeholderTextColor="#9B9B9B"
+                value={form.city}
+                onChangeText={(v) => updateField('city', v)}
+              />
+            </View>
+          </>
+        )}
 
         {/* Raio de atuação */}
         <View style={styles.fieldGroup}>
@@ -383,9 +510,9 @@ export default function ProfessionalFormScreen() {
           <View style={styles.sliderRow}>
             <Slider
               style={{ flex: 1 }}
-              minimumValue={1}
-              maximumValue={100}
-              step={1}
+              minimumValue={5}
+              maximumValue={50}
+              step={5}
               value={form.radiusKm}
               minimumTrackTintColor={BLUE}
               maximumTrackTintColor="#D9D9D9"
@@ -433,9 +560,10 @@ export default function ProfessionalFormScreen() {
         {/* Botões */}
         <View style={styles.buttonsGroup}>
           <GradientButton
-            label="Salvar alterações e publicar"
+            label={loading ? 'Salvando...' : 'Salvar alterações e publicar'}
             colors={[BLUE, ORANGE]}
             onPress={handleSave}
+            disabled={loading}
           />
         </View>
       </ScrollView>

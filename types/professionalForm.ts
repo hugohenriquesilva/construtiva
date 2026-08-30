@@ -14,6 +14,9 @@ export interface ProfessionalFormData {
   cnpj: string;
   experienceRange: string | null;
   zipCode: string;
+  street: string;
+  neighborhood: string;
+  city: string;
   radiusKm: number;
   aboutMe: string;
   servicePhotos: (string | null)[];
