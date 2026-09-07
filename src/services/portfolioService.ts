@@ -46,9 +46,9 @@ export async function savePortfolio(formData: ProfessionalFormData): Promise<voi
     try {
         const portfolioRef = doc(db, 'portfolios', uid);
 
-        // Upload da foto de perfil se existir e for local (começa com file://)
+        // Upload da foto de perfil se existir e for local (ainda não é uma URL remota)
         let photoUrl: string | null = formData.photoUri;
-        if (formData.photoUri && formData.photoUri.startsWith('file://')) {
+        if (formData.photoUri && !formData.photoUri.startsWith('http')) {
             photoUrl = await uploadImage(uid, formData.photoUri, 'avatar');
         }
 
@@ -56,7 +56,7 @@ export async function savePortfolio(formData: ProfessionalFormData): Promise<voi
         const servicePhotosUrls: (string | null)[] = await Promise.all(
             formData.servicePhotos.map(async (uri, index) => {
                 if (!uri) return null;
-                if (uri.startsWith('file://')) {
+                if (!uri.startsWith('http')) {
                     return await uploadImage(uid, uri, `service_${index}`);
                 }
                 return uri; // já é URL

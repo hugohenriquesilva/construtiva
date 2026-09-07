@@ -69,7 +69,7 @@ export const styles = StyleSheet.create({
     workRowsScroll: { paddingRight: 24 },
     workImage: { height: 172, width: 210, borderRadius: 18, borderWidth: 1, borderColor: '#E4E4E4', shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
     imageModal: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 0, 0, 0.86)' },
+    modalBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0, 0, 0, 0.86)' },
     imagePreviewContainer: { width: '92%', height: '72%', position: 'relative' },
     zoomableImage: { width: '100%', height: '100%' },
     imagePreview: { width: '100%', height: '100%', borderRadius: 16 },

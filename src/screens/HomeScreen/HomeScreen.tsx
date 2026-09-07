@@ -79,7 +79,7 @@ export default function HomeScreen() {
         // Ao tocar na aba "Início", rola o feed de volta para o topo da tela
         if (tab === 'home') {
             feedListRef.current?.scrollToOffset({ offset: 0, animated: true });
-        } else if (tab === 'profile') {
+        } else if (tab === 'professional') {
             navigation.navigate('BuscaPortfolio');
         }
         else if (tab === 'menu') {
@@ -141,7 +141,11 @@ export default function HomeScreen() {
 
             />
 
-            <BottomNavBar activeTab={activeTab} onTabPress={handleTabPress} />
+            <BottomNavBar
+                activeTab={activeTab}
+                onTabPress={handleTabPress}
+                onAddPress={() => navigation.navigate('Adicionar')}
+            />
         </SafeAreaView>
     );
 }

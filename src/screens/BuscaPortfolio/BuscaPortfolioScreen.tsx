@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { doc, getDoc } from "firebase/firestore";
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -19,8 +19,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from "@/firebaseConfig";
 import { getClientLocation } from "@/src/services/locationService";
 import {
-  searchProfessionalsByGeoHash,
   ProfessionalSearchResult,
+  searchProfessionalsByGeoHash,
 } from "@/src/services/searchService";
 import { BottomTabKey } from "../../../types/home";
 import { RootStackParamList } from "../../../types/navigation";
@@ -61,12 +61,12 @@ export default function BuscaPortfolioScreen() {
                 navigation.navigate("MaisInformacoes", { focusCep: true }),
             },
           ],
-          { cancelable: false }
+          { cancelable: false },
         );
       };
 
       checkLocation();
-    }, [navigation])
+    }, [navigation]),
   );
 
   // Busca conforme o usuário digita (com debounce), usando o geohash do cliente
@@ -82,9 +82,14 @@ export default function BuscaPortfolioScreen() {
 
     setSearching(true);
     const timeout = setTimeout(async () => {
-      const response = await searchProfessionalsByGeoHash(profession, userGeohash);
+      const response = await searchProfessionalsByGeoHash(
+        profession,
+        userGeohash,
+      );
       setResults(response.results);
-      setEmptyMessage(response.results.length === 0 ? response.message ?? null : null);
+      setEmptyMessage(
+        response.results.length === 0 ? (response.message ?? null) : null,
+      );
       setSearching(false);
     }, 400);
 
@@ -94,7 +99,7 @@ export default function BuscaPortfolioScreen() {
   const handleTabPress = (tab: BottomTabKey) => {
     if (tab === "home") {
       navigation.navigate("Home");
-    } else if (tab === "profile") {
+    } else if (tab === "professional") {
       // já está na tela de busca, não faz nada
     } else if (tab === "menu") {
       navigation.navigate("MaisInformacoes");
@@ -102,7 +107,10 @@ export default function BuscaPortfolioScreen() {
   };
 
   const renderItem = ({ item }: { item: ProfessionalSearchResult }) => {
-    const occupations = [item.mainProfession, ...item.secondaryProfessions].filter(Boolean);
+    const occupations = [
+      item.mainProfession,
+      ...item.secondaryProfessions,
+    ].filter(Boolean);
 
     return (
       <View style={styles.resultCard}>
@@ -149,7 +157,7 @@ export default function BuscaPortfolioScreen() {
       <View style={styles.screen}>
         <View style={styles.header}>
           <Feather name="search" size={20} color="#1A1A1A" />
-          <Text style={styles.headerTitle}>Buscar portfólio</Text>
+          <Text style={styles.headerTitle}>Buscar profissionais</Text>
         </View>
 
         <View style={styles.searchRow}>
@@ -179,7 +187,11 @@ export default function BuscaPortfolioScreen() {
         />
       </View>
 
-      <BottomNavBar activeTab="profile" onTabPress={handleTabPress} />
+      <BottomNavBar
+        activeTab="professional"
+        onTabPress={handleTabPress}
+        onAddPress={() => navigation.navigate("Adicionar")}
+      />
     </SafeAreaView>
   );
 }

@@ -124,7 +124,7 @@ export default function ProfilePortfolioScreen() {
     const handleTabPress = (tab: BottomTabKey) => {
         if (tab === 'home') {
             navigation.navigate('Home');
-        } else if (tab === 'profile') {
+        } else if (tab === 'professional') {
             navigation.navigate('BuscaPortfolio');
         } else if (tab === 'menu') {
             navigation.navigate('MaisInformacoes');
@@ -256,7 +256,11 @@ export default function ProfilePortfolioScreen() {
                     </View>
                 </ScrollView>
 
-                <BottomNavBar activeTab={hideBackButton ? 'profile' : 'menu'} onTabPress={handleTabPress} />
+                <BottomNavBar
+                    activeTab={hideBackButton ? 'professional' : 'menu'}
+                    onTabPress={handleTabPress}
+                    onAddPress={() => navigation.navigate('Adicionar')}
+                />
 
                 <Modal visible={selectedWork !== null} transparent animationType="fade" onRequestClose={closePreview}>
                     <View style={styles.imageModal}>

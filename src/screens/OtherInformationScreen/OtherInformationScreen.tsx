@@ -1,6 +1,5 @@
 import { auth, db } from "@/firebaseConfig";
 import { logoutUser } from "@/src/services/authService";
-import { getPortfolio } from "@/src/services/portfolioService";
 import { cpfMask } from "@/src/utils/CpfMask";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
@@ -43,7 +42,6 @@ export default function OtherInformationScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "MaisInformacoes">>();
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [portfolioActive, setPortfolioActive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -71,12 +69,10 @@ export default function OtherInformationScreen() {
             const userRef = doc(db, "users", uid);
             const userSnap = await getDoc(userRef);
             if (userSnap.exists()) {
-              setUserProfile(userSnap.data());
+              const data = userSnap.data();
+              console.log("[OtherInformationScreen] users/{uid} carregado:", { photoUri: data.photoUri });
+              setUserProfile(data);
             }
-
-            // Carregar status do portfólio
-            const portfolio = await getPortfolio(uid);
-            setPortfolioActive(portfolio?.isActive ?? false);
           }
         } catch (error) {
           console.error("Erro ao carregar dados:", error);
@@ -92,7 +88,7 @@ export default function OtherInformationScreen() {
   const handleTabPress = (tab: BottomTabKey) => {
     if (tab === "home") {
       navigation.navigate("Home");
-    } else if (tab === "profile") {
+    } else if (tab === "professional") {
       navigation.navigate("BuscaPortfolio");
     } else if (tab === "menu") {
       // já está na tela de menu, não faz nada
@@ -145,6 +141,19 @@ export default function OtherInformationScreen() {
                   <Image
                     source={{ uri: userProfile.photoUri }}
                     style={styles.avatarImage}
+                    onError={(e) =>
+                      console.log(
+                        "[OtherInformationScreen] falha ao carregar avatar:",
+                        userProfile.photoUri,
+                        e.nativeEvent.error,
+                      )
+                    }
+                    onLoad={() =>
+                      console.log(
+                        "[OtherInformationScreen] avatar carregado com sucesso:",
+                        userProfile.photoUri,
+                      )
+                    }
                   />
                 ) : (
                   <MaterialCommunityIcons
@@ -165,49 +174,33 @@ export default function OtherInformationScreen() {
           )}
 
           <View style={styles.menuList}>
-            {menuItems.map((item) => {
-              // Se for "Meu portfólio", mostrar status Ativo/Inativo
-              const displayStatus =
-                item.label === "Meu portfólio"
-                  ? portfolioActive
-                    ? "Ativo"
-                    : "Inativo"
-                  : item.status;
-
-              return (
-                <Pressable
-                  key={item.label}
-                  style={styles.menuButton}
-                  onPress={() => {
-                    if (item.label === "Meu portfólio") {
-                      if (portfolioActive) {
-                        navigation.navigate("PortfolioProfissional");
-                      } else {
-                        navigation.navigate("FormularioProfissional");
-                      }
-                    } else if (item.label === "Minha senha") {
-                      setShowPasswordModal(true);
-                    } else {
-                      showMockAction(item.action);
-                    }
-                  }}
-                >
-                  <Text style={styles.menuLabel}>{item.label}</Text>
-                  {displayStatus ? (
-                    <Text
-                      style={[
-                        styles.badge,
-                        displayStatus === "Ativo"
-                          ? styles.activeBadge
-                          : styles.inactiveBadge,
-                      ]}
-                    >
-                      {displayStatus}
-                    </Text>
-                  ) : null}
-                </Pressable>
-              );
-            })}
+            {menuItems.map((item) => (
+              <Pressable
+                key={item.label}
+                style={styles.menuButton}
+                onPress={() => {
+                  if (item.label === "Minha senha") {
+                    setShowPasswordModal(true);
+                  } else {
+                    showMockAction(item.action);
+                  }
+                }}
+              >
+                <Text style={styles.menuLabel}>{item.label}</Text>
+                {item.status ? (
+                  <Text
+                    style={[
+                      styles.badge,
+                      item.status === "Ativo"
+                        ? styles.activeBadge
+                        : styles.inactiveBadge,
+                    ]}
+                  >
+                    {item.status}
+                  </Text>
+                ) : null}
+              </Pressable>
+            ))}
           </View>
 
           <Pressable style={styles.signOutButton} onPress={handleSignOut}>
@@ -215,7 +208,11 @@ export default function OtherInformationScreen() {
           </Pressable>
         </ScrollView>
 
-        <BottomNavBar activeTab="menu" onTabPress={handleTabPress} />
+        <BottomNavBar
+          activeTab="menu"
+          onTabPress={handleTabPress}
+          onAddPress={() => navigation.navigate("Adicionar")}
+        />
       </View>
 
       <EditProfile

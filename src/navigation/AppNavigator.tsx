@@ -14,6 +14,7 @@ import { ForgotPassword } from "../screens/ForgotPassword/ForgotPassword";
 import ProfilePortfolioScreen from '../screens/ProfilePortfolio/ProfilePortfolioScreen';
 import OtherInformationScreen from '../screens/OtherInformationScreen/OtherInformationScreen';
 import BuscaPortfolioScreen from '../screens/BuscaPortfolio/BuscaPortfolioScreen';
+import AddOptionsScreen from '../screens/AddOptions/AddOptionsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -57,6 +58,7 @@ export default function AppNavigator() {
             <Stack.Screen name="FormularioProfissional" component={ProfessionalFormScreen} />
             <Stack.Screen name="PortfolioProfissional" component={ProfilePortfolioScreen} />
             <Stack.Screen name="MaisInformacoes" component={OtherInformationScreen} />
+            <Stack.Screen name="Adicionar" component={AddOptionsScreen} />
           </>
         ) : (
           <>
