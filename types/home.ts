@@ -4,6 +4,7 @@ export interface Professional {
   city: string;
   avatarUrl: string;
   hasCnpj: boolean;
+  likesCount?: number;
 }
 
 export interface FeedPost {
@@ -16,3 +17,9 @@ export interface FeedPost {
 }
 
 export type BottomTabKey = 'home' | 'services' | 'professional' | 'menu' | 'add';
+
+export interface CompleteProfessional extends Professional {
+  mainProfession: string;
+  secondaryProfessions: string[];
+  aboutMe: string;
+}
