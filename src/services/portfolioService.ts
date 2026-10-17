@@ -1,10 +1,8 @@
 import {
     collection,
     doc,
-    setDoc,
     getDoc,
     updateDoc,
-    deleteDoc,
     increment,
     writeBatch,
 } from 'firebase/firestore';
@@ -15,13 +13,14 @@ import {
     deleteObject,
 } from 'firebase/storage';
 import { db, storage, auth } from '@/firebaseConfig';
+import { uriToBlob } from '@/src/utils/UriToBlob';
 import { ProfessionalFormData } from '../../types/professionalForm';
+import { UserRole } from '../../types/user';
 
 export interface PortfolioData {
     displayName: string;
-    area: string | null;
-    mainProfession: string | null;
-    secondaryProfessions: string[];
+    mainProfessionId: string | null;
+    secondaryProfessionIds: string[];
     hasCnpj: boolean;
     cnpj: string;
     experienceRange: string | null;
@@ -65,9 +64,8 @@ export async function savePortfolio(formData: ProfessionalFormData): Promise<voi
 
         const portfolioData: PortfolioData = {
             displayName: formData.displayName,
-            area: formData.area,
-            mainProfession: formData.mainProfession,
-            secondaryProfessions: formData.secondaryProfessions,
+            mainProfessionId: formData.mainProfessionId,
+            secondaryProfessionIds: formData.secondaryProfessionIds,
             hasCnpj: formData.hasCnpj,
             cnpj: formData.cnpj,
             experienceRange: formData.experienceRange,
@@ -83,11 +81,24 @@ export async function savePortfolio(formData: ProfessionalFormData): Promise<voi
             updatedAt: new Date().toISOString(),
         };
 
-        await setDoc(portfolioRef, portfolioData, { merge: true });
+        // Portfólio e role gravados juntos: quem tem portfólio passa a ser "professional" (admin nunca muda)
+        const userRef = doc(db, 'users', uid);
+        const currentRole = await getUserRole(uid);
+        const batch = writeBatch(db);
+        batch.set(portfolioRef, portfolioData, { merge: true });
+        if (currentRole !== 'admin' && currentRole !== 'professional') {
+            batch.update(userRef, { role: 'professional' });
+        }
+        await batch.commit();
     } catch (error) {
         console.error('Erro ao salvar portfólio:', error);
         throw error;
     }
+}
+
+async function getUserRole(uid: string): Promise<UserRole | null> {
+    const snap = await getDoc(doc(db, 'users', uid));
+    return (snap.data()?.role as UserRole | undefined) ?? null;
 }
 
 // Carregar portfólio
@@ -128,15 +139,14 @@ async function uploadImage(
 ): Promise<string> {
     try {
         // Converter URI para blob
-        const response = await fetch(imagePath);
-        const blob = await response.blob();
+        const blob = await uriToBlob(imagePath);
 
         // Referência no Storage
         const ext = imagePath.split('.').pop() || 'jpg';
         const storageRef = ref(storage, `portfolios/${uid}/${type}.${ext}`);
 
         // Upload
-        const snapshot = await uploadBytes(storageRef, blob);
+        const snapshot = await uploadBytes(storageRef, blob, { contentType: blob.type || 'image/jpeg' });
 
         // Retornar URL downloadável
         const url = await getDownloadURL(snapshot.ref);
@@ -181,9 +191,15 @@ export async function deletePortfolio(uid?: string): Promise<void> {
     if (!userId) throw new Error('Usuário não autenticado');
 
     try {
-        // Deletar documento
+        // Deletar documento e voltar a role para "client" (admin nunca muda)
         const portfolioRef = doc(db, 'portfolios', userId);
-        await deleteDoc(portfolioRef);
+        const currentRole = await getUserRole(userId);
+        const batch = writeBatch(db);
+        batch.delete(portfolioRef);
+        if (currentRole === 'professional') {
+            batch.update(doc(db, 'users', userId), { role: 'client' });
+        }
+        await batch.commit();
 
         // Deletar pasta de imagens do Storage (opcional, mas recomendado)
         // Você pode adicionar isso depois se quiser

@@ -2,12 +2,13 @@ import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { doc, getDoc } from "firebase/firestore";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Image,
+  Keyboard,
   Pressable,
   StatusBar,
   Text,
@@ -17,6 +18,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { auth, db } from "@/firebaseConfig";
+import { useProfessions } from "@/src/hooks/useProfessions";
+import { Profession } from "@/src/services/professionService";
+import { formatProfessionName } from "@/src/utils/formatProfessionName";
+import { matchProfessions, ProfessionMatch } from "@/src/utils/matchProfessions";
 import { getClientLocation } from "@/src/services/locationService";
 import {
   ProfessionalSearchResult,
@@ -35,6 +40,20 @@ export default function BuscaPortfolioScreen() {
   const [results, setResults] = useState<ProfessionalSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [emptyMessage, setEmptyMessage] = useState<string | null>(null);
+  // A busca só roda para uma profissão escolhida na lista de sugestões, nunca pelo texto digitado
+  const [selectedProfession, setSelectedProfession] = useState<Profession | null>(null);
+  const {
+    professions,
+    loading: professionsLoading,
+    error: professionsError,
+  } = useProfessions();
+  // Evita que a resposta de uma busca antiga sobrescreva a da seleção mais recente
+  const searchRequestId = useRef(0);
+
+  const suggestions = useMemo(
+    () => (selectedProfession ? [] : matchProfessions(searchQuery, professions)),
+    [searchQuery, professions, selectedProfession],
+  );
 
   // Se o cliente ainda não cadastrou o CEP, avisa e leva para o cadastro.
   // Aproveita para carregar o geohash do cliente, usado na busca.
@@ -69,32 +88,54 @@ export default function BuscaPortfolioScreen() {
     }, [navigation]),
   );
 
-  // Busca conforme o usuário digita (com debounce), usando o geohash do cliente
-  useEffect(() => {
-    const profession = searchQuery.trim();
+  const resetSearch = () => {
+    searchRequestId.current += 1;
+    setSelectedProfession(null);
+    setResults([]);
+    setEmptyMessage(null);
+    setSearching(false);
+  };
 
-    if (!profession || !userGeohash) {
-      setResults([]);
-      setEmptyMessage(null);
-      setSearching(false);
+  // Ao voltar a digitar depois de escolher, a seleção e os resultados são descartados
+  const handleChangeText = (text: string) => {
+    setSearchQuery(text);
+    if (selectedProfession) resetSearch();
+  };
+
+  const handleClear = () => {
+    setSearchQuery("");
+    resetSearch();
+  };
+
+  const handleSelectProfession = async (profession: Profession) => {
+    Keyboard.dismiss();
+    setSelectedProfession(profession);
+    setSearchQuery(formatProfessionName(profession.name));
+    setResults([]);
+
+    if (!userGeohash) {
+      setEmptyMessage(
+        "Cadastre seu CEP para encontrar profissionais próximos a você.",
+      );
       return;
     }
 
+    const requestId = ++searchRequestId.current;
     setSearching(true);
-    const timeout = setTimeout(async () => {
-      const response = await searchProfessionalsByGeoHash(
-        profession,
-        userGeohash,
-      );
-      setResults(response.results);
-      setEmptyMessage(
-        response.results.length === 0 ? (response.message ?? null) : null,
-      );
-      setSearching(false);
-    }, 400);
+    setEmptyMessage(null);
 
-    return () => clearTimeout(timeout);
-  }, [searchQuery, userGeohash]);
+    const response = await searchProfessionalsByGeoHash(
+      profession.name,
+      userGeohash,
+    );
+    if (requestId !== searchRequestId.current) return;
+
+    setResults(response.results);
+    setEmptyMessage(
+      response.results.length === 0 ? (response.message ?? null) : null,
+    );
+    setSearching(false);
+  };
 
   const handleTabPress = (tab: BottomTabKey) => {
     if (tab === "home") {
@@ -107,10 +148,9 @@ export default function BuscaPortfolioScreen() {
   };
 
   const renderItem = ({ item }: { item: ProfessionalSearchResult }) => {
-    const occupations = [
-      item.mainProfession,
-      ...item.secondaryProfessions,
-    ].filter(Boolean);
+    const occupations = [item.mainProfession, ...item.secondaryProfessions]
+      .filter(Boolean)
+      .map(formatProfessionName);
 
     return (
       <View style={styles.resultCard}>
@@ -151,6 +191,35 @@ export default function BuscaPortfolioScreen() {
     );
   };
 
+  // Destaca em negrito o trecho que combinou com o texto digitado ("**Pin**tor")
+  const renderSuggestion = ({ item }: { item: ProfessionMatch }) => {
+    const name = formatProfessionName(item.profession.name);
+    const matchEnd = item.matchStart + item.matchLength;
+
+    return (
+      <Pressable
+        style={styles.suggestionItem}
+        onPress={() => handleSelectProfession(item.profession)}
+      >
+        <Feather name="search" size={14} color="#9C9C9C" />
+        <Text style={styles.suggestionText}>
+          {name.slice(0, item.matchStart)}
+          <Text style={styles.suggestionMatch}>
+            {name.slice(item.matchStart, matchEnd)}
+          </Text>
+          {name.slice(matchEnd)}
+        </Text>
+      </Pressable>
+    );
+  };
+
+  const suggestionsEmptyMessage = () => {
+    if (!searchQuery.trim()) return null;
+    if (professionsLoading) return "Carregando profissões...";
+    if (professionsError) return "Não foi possível carregar as profissões.";
+    return `Nenhuma profissão encontrada para "${searchQuery.trim()}".`;
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <StatusBar barStyle="dark-content" />
@@ -167,24 +236,54 @@ export default function BuscaPortfolioScreen() {
             placeholder="Pesquisar tipo de profissional"
             placeholderTextColor="#9C9C9C"
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={handleChangeText}
+            autoCorrect={false}
+            returnKeyType="done"
           />
           {searching && <ActivityIndicator size="small" color="#9C9C9C" />}
+          {!!searchQuery && !searching && (
+            <Pressable
+              accessibilityLabel="Limpar busca"
+              hitSlop={10}
+              onPress={handleClear}
+            >
+              <Feather name="x" size={16} color="#9C9C9C" />
+            </Pressable>
+          )}
         </View>
 
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.uid}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={
-            emptyMessage ? (
-              <Text style={styles.emptyMessage}>{emptyMessage}</Text>
-            ) : null
-          }
-        />
+        {selectedProfession ? (
+          <FlatList
+            data={results}
+            keyExtractor={(item) => item.uid}
+            renderItem={renderItem}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ListEmptyComponent={
+              emptyMessage ? (
+                <Text style={styles.emptyMessage}>{emptyMessage}</Text>
+              ) : null
+            }
+          />
+        ) : (
+          <FlatList
+            data={suggestions}
+            keyExtractor={(item) => item.profession.id}
+            renderItem={renderSuggestion}
+            contentContainerStyle={styles.listContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ListEmptyComponent={
+              suggestionsEmptyMessage() ? (
+                <Text style={styles.emptyMessage}>
+                  {suggestionsEmptyMessage()}
+                </Text>
+              ) : null
+            }
+          />
+        )}
       </View>
 
       <BottomNavBar

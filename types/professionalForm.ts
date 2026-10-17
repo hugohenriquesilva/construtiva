@@ -1,3 +1,6 @@
+// Também validado nas regras do Firestore (portfolios)
+export const MAX_SECONDARY_PROFESSIONS = 3;
+
 export interface ExperienceRange {
   label: string;
   value: string;
@@ -6,9 +9,8 @@ export interface ExperienceRange {
 export interface ProfessionalFormData {
   photoUri: string | null;
   isActive: boolean;
-  area: string | null;
-  mainProfession: string | null;
-  secondaryProfessions: string[];
+  mainProfessionId: string | null;
+  secondaryProfessionIds: string[];
   displayName: string;
   hasCnpj: boolean;
   cnpj: string;

@@ -1,0 +1,11 @@
+{
+  "name": "construtiva-admin-scripts",
+  "private": true,
+  "description": "Scripts administrativos (Firebase Admin SDK). Rodam no computador do desenvolvedor, nunca no app.",
+  "scripts": {
+    "admin": "node admin.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.5.0"
+  }
+}

@@ -8,4 +8,5 @@ export type RootStackParamList = {
   MaisInformacoes: { focusCep?: boolean } | undefined;
   BuscaPortfolio: undefined;
   Adicionar: undefined;
+  EdicaoProfissoes: undefined;
 };

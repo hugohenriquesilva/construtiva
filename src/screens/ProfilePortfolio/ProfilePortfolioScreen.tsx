@@ -17,6 +17,8 @@ import { BottomTabKey } from '../../../types/home';
 import { RootStackParamList } from '../../../types/navigation';
 import { getPortfolio, isPortfolioLikedByUser, togglePortfolioLike, PortfolioData } from '../../services/portfolioService';
 import { auth } from '@/firebaseConfig';
+import { useProfessions } from '../../hooks/useProfessions';
+import { formatProfessionName } from '../../utils/formatProfessionName';
 
 const COVER_COLORS: [string, string] = ['rgba(91, 105, 163, 1)', 'rgba(210, 110, 56, 1)'];
 
@@ -38,6 +40,7 @@ export default function ProfilePortfolioScreen() {
     const [selectedWork, setSelectedWork] = useState<string | null>(null);
     const [bioExpanded, setBioExpanded] = useState(false);
     const [liked, setLiked] = useState(false);
+    const { namesById } = useProfessions();
     const [likesCount, setLikesCount] = useState(0);
     const [likeSaving, setLikeSaving] = useState(false);
     const scale = useSharedValue(1);
@@ -185,7 +188,11 @@ export default function ProfilePortfolioScreen() {
                                     </View>
                                 )}
 
-                                <Text style={styles.occupation}>{portfolio.mainProfession}</Text>
+                                <Text style={styles.occupation}>
+                                    {formatProfessionName(
+                                        portfolio.mainProfessionId ? namesById[portfolio.mainProfessionId] ?? '' : ''
+                                    )}
+                                </Text>
 
                                 {!isOwnProfile && (
                                     <Pressable
@@ -203,11 +210,11 @@ export default function ProfilePortfolioScreen() {
                                     </Pressable>
                                 )}
 
-                                {portfolio.secondaryProfessions.length > 0 && (
+                                {(portfolio.secondaryProfessionIds ?? []).length > 0 && (
                                     <View style={styles.secondaryTagsRow}>
-                                        {portfolio.secondaryProfessions.map((tag, index) => (
-                                            <View key={`${tag}-${index}`} style={styles.secondaryTag}>
-                                                <Text style={styles.secondaryTagText}>{tag}</Text>
+                                        {(portfolio.secondaryProfessionIds ?? []).map((id) => (
+                                            <View key={id} style={styles.secondaryTag}>
+                                                <Text style={styles.secondaryTagText}>{formatProfessionName(namesById[id] ?? '')}</Text>
                                             </View>
                                         ))}
                                     </View>
