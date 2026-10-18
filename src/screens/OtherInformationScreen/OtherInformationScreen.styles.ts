@@ -3,11 +3,12 @@ import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
   screen: { flex: 1, backgroundColor: "#FFFFFF" },
+  scroll: { flex: 1 },
   content: {
     flexGrow: 1,
     paddingHorizontal: 28,
     paddingTop: 34,
-    paddingBottom: 96,
+    paddingBottom: 24,
   },
   header: {
     alignItems: "center",
@@ -79,12 +80,11 @@ export const styles = StyleSheet.create({
   },
   activeBadge: { backgroundColor: "#258344" },
   inactiveBadge: { backgroundColor: "#777777" },
+  signOutFooter: { paddingHorizontal: 28, paddingTop: 12, paddingBottom: 16 },
   signOutButton: {
     borderColor: "#888888",
     borderRadius: 15,
     borderWidth: 1.2,
-    marginHorizontal: 3,
-    marginTop: 22,
     minHeight: 53,
     paddingHorizontal: 40,
     justifyContent: "center",
