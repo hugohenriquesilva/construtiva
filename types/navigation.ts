@@ -9,4 +9,5 @@ export type RootStackParamList = {
   BuscaPortfolio: undefined;
   Adicionar: undefined;
   EdicaoProfissoes: undefined;
+  CadastrarServico: undefined;
 };
