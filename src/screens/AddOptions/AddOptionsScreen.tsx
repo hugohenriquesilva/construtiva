@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { Feather } from "@expo/vector-icons";
 import { Alert, Pressable, ScrollView, StatusBar, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -58,24 +59,36 @@ export default function AddOptionsScreen() {
           <Text style={styles.title}>Adicionar</Text>
 
           <View style={styles.optionList}>
-            <Pressable
-              style={styles.optionButton}
-              onPress={() =>
-                navigation.navigate(
-                  portfolioActive ? "PortfolioProfissional" : "FormularioProfissional",
-                )
-              }
-            >
-              <Text style={styles.optionLabel}>Meu portfólio</Text>
-              <Text
-                style={[
-                  styles.badge,
-                  portfolioActive ? styles.activeBadge : styles.inactiveBadge,
-                ]}
+            <View style={styles.portfolioRow}>
+              <Pressable
+                style={[styles.optionButton, styles.portfolioOption]}
+                onPress={() =>
+                  navigation.navigate(
+                    portfolioActive ? "PortfolioProfissional" : "FormularioProfissional",
+                  )
+                }
               >
-                {portfolioActive ? "Ativo" : "Inativo"}
-              </Text>
-            </Pressable>
+                <Text style={styles.optionLabel}>Meu portfólio</Text>
+                <Text
+                  style={[
+                    styles.badge,
+                    portfolioActive ? styles.activeBadge : styles.inactiveBadge,
+                  ]}
+                >
+                  {portfolioActive ? "Ativo" : "Inativo"}
+                </Text>
+              </Pressable>
+
+              {portfolioActive && (
+                <Pressable
+                  accessibilityLabel="Editar meu portfólio"
+                  style={styles.editButton}
+                  onPress={() => navigation.navigate("FormularioProfissional")}
+                >
+                  <Feather name="edit-2" size={20} color="#FFFFFF" />
+                </Pressable>
+              )}
+            </View>
 
             <Pressable
               style={styles.optionButton}

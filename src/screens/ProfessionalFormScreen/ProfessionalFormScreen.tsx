@@ -133,16 +133,19 @@ export default function ProfessionalFormScreen() {
 
     if (!form.photoUri) newErrors.add('photoUri');
     if (!form.mainProfessionId) newErrors.add('mainProfessionId');
-    if (!form.displayName.trim()) newErrors.add('displayName');
-    if (form.hasCnpj && !form.cnpj.trim()) newErrors.add('cnpj');
+    if (!form.displayName?.trim()) newErrors.add('displayName');
+    if (form.hasCnpj && !form.cnpj?.trim()) newErrors.add('cnpj');
     if (!form.experienceRange) newErrors.add('experienceRange');
-    if (!form.zipCode.trim()) newErrors.add('zipCode');
-    if (!form.street.trim()) newErrors.add('street');
-    if (!form.neighborhood.trim()) newErrors.add('neighborhood');
-    if (!form.city.trim()) newErrors.add('city');
-    if (!form.aboutMe.trim()) newErrors.add('aboutMe');
+    if (!form.zipCode?.trim()) newErrors.add('zipCode');
+    if (!form.street?.trim()) newErrors.add('street');
+    if (!form.neighborhood?.trim()) newErrors.add('neighborhood');
+    if (!form.city?.trim()) newErrors.add('city');
+    if (!form.aboutMe?.trim()) newErrors.add('aboutMe');
 
     setErrors(newErrors);
+    if (newErrors.size > 0) {
+      Alert.alert('Campos obrigatórios', 'Preencha todos os campos destacados antes de salvar.');
+    }
     return newErrors.size === 0;
   };
 

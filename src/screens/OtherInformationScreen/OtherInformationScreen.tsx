@@ -167,6 +167,14 @@ export default function OtherInformationScreen() {
                 <Text style={styles.menuLabel}>Edição de profissões</Text>
               </Pressable>
             )}
+            {userProfile?.role === "admin" && (
+              <Pressable
+                style={styles.menuButton}
+                onPress={() => navigation.navigate("Denuncias")}
+              >
+                <Text style={styles.menuLabel}>Denúncias</Text>
+              </Pressable>
+            )}
             {menuItems.map((item) => (
               <Pressable
                 key={item.label}
