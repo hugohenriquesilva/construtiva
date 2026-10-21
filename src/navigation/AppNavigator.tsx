@@ -16,6 +16,7 @@ import OtherInformationScreen from '../screens/OtherInformationScreen/OtherInfor
 import BuscaPortfolioScreen from '../screens/BuscaPortfolio/BuscaPortfolioScreen';
 import AddOptionsScreen from '../screens/AddOptions/AddOptionsScreen';
 import ProfessionsAdminScreen from '../screens/ProfessionsAdmin/ProfessionsAdminScreen';
+import CreateServiceScreen from "@/src/screens/AddService/CreateServiceScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -60,6 +61,7 @@ export default function AppNavigator() {
             <Stack.Screen name="PortfolioProfissional" component={ProfilePortfolioScreen} />
             <Stack.Screen name="MaisInformacoes" component={OtherInformationScreen} />
             <Stack.Screen name="Adicionar" component={AddOptionsScreen} />
+            <Stack.Screen name="CadastrarServico" component={CreateServiceScreen} />
             <Stack.Screen name="EdicaoProfissoes" component={ProfessionsAdminScreen} />
           </>
         ) : (
