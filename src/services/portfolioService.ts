@@ -1,5 +1,8 @@
 import {
     collection,
+    query,
+    where,
+    onSnapshot,
     deleteDoc,
     doc,
     getDoc,
@@ -17,6 +20,7 @@ import {
 } from 'firebase/storage';
 import { db, storage, auth } from '@/firebaseConfig';
 import { uriToBlob } from '@/src/utils/UriToBlob';
+import { CompleteProfessional, Professional } from '../../types/home';
 import { ProfessionalFormData } from '../../types/professionalForm';
 import { UserRole } from '../../types/user';
 
@@ -245,4 +249,71 @@ export async function deletePortfolioAsAdmin(uid: string): Promise<void> {
     } catch (error) {
         console.error('Erro ao excluir imagens do portfólio:', error);
     }
+}
+
+// Inclui portfólios antigos sem contador, considerando zero curtidas.
+export function subscribeToTopProfessionals(
+    onUpdate: (professionals: Professional[]) => void,
+    onError: (error: Error) => void,
+) {
+    const activePortfolios = query(
+        collection(db, 'portfolios'),
+        where('isActive', '==', true),
+    );
+
+    return onSnapshot(activePortfolios, (snapshot) => {
+        const professionals = snapshot.docs.map((document): Professional => {
+            const data = document.data() as PortfolioData;
+            return {
+                id: document.id,
+                name: data.displayName,
+                city: data.city,
+                avatarUrl: data.photoUri ?? '',
+                hasCnpj: data.hasCnpj,
+                likesCount: Math.max(0, data.likesCount ?? 0),
+            };
+        });
+
+        professionals.sort((a, b) =>
+            (b.likesCount ?? 0) - (a.likesCount ?? 0) || a.id.localeCompare(b.id)
+        );
+        onUpdate(professionals.slice(0, 10));
+    }, onError);
+}
+
+// Mesmos campos obrigatórios da validação do formulário profissional.
+export function isPortfolioComplete(data: Partial<PortfolioData>): boolean {
+    const requiredFields = [
+        data.photoUri, data.mainProfessionId, data.displayName,
+        data.experienceRange, data.zipCode, data.street, data.neighborhood,
+        data.city, data.aboutMe,
+    ];
+    return requiredFields.every((value) => typeof value === 'string' && value.trim().length > 0)
+        && (!data.hasCnpj || (typeof data.cnpj === 'string' && data.cnpj.trim().length > 0));
+}
+
+export function subscribeToCompleteProfessionals(
+    onUpdate: (professionals: CompleteProfessional[]) => void,
+    onError: (error: Error) => void,
+) {
+    return onSnapshot(query(collection(db, 'portfolios'), where('isActive', '==', true)), (snapshot) => {
+        const professionals: CompleteProfessional[] = [];
+        snapshot.docs.forEach((document) => {
+            const data = document.data() as PortfolioData;
+            if (!isPortfolioComplete(data)) return;
+            professionals.push({
+                id: document.id,
+                name: data.displayName,
+                city: data.city,
+                avatarUrl: data.photoUri!,
+                hasCnpj: data.hasCnpj,
+                mainProfessionId: data.mainProfessionId!,
+                secondaryProfessionIds: data.secondaryProfessionIds ?? [],
+                aboutMe: data.aboutMe,
+                likesCount: Math.max(0, data.likesCount ?? 0),
+            });
+        });
+        professionals.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR') || a.id.localeCompare(b.id));
+        onUpdate(professionals);
+    }, onError);
 }

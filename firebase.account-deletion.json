@@ -1,0 +1,4 @@
+{
+  "functions": [{ "source": "firebase-functions", "codebase": "account-deletion" }],
+  "firestore": { "indexes": "firebase-functions/firestore.indexes.json" }
+}

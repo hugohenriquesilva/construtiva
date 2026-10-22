@@ -25,6 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomTabKey } from "../../../types/home";
 import { RootStackParamList } from "../../../types/navigation";
 import BottomNavBar from "../../components/BottomNavBar/BottomNavBar";
+import DeleteAccount from "../../components/DeleteAccount/DeleteAccount";
 import ChangePassword from "../../components/ChangePassword/ChangePassword";
 import EditProfile from "../../components/EditProfile/EditProfile";
 import { menuItems } from "./OtherInformationScreen.mock";
@@ -42,9 +43,10 @@ export default function OtherInformationScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "MaisInformacoes">>();
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [focusCep, setFocusCep] = useState(false);
 
   // Se veio da tela de busca por falta de CEP, abre o editor já focado nele
@@ -74,8 +76,6 @@ export default function OtherInformationScreen() {
           }
         } catch (error) {
           console.error("Erro ao carregar dados:", error);
-        } finally {
-          setLoading(false);
         }
       };
 
@@ -102,7 +102,7 @@ export default function OtherInformationScreen() {
           routes: [{ name: "Login" }],
         }),
       );
-    } catch (error) {
+    } catch {
       Alert.alert(
         "Erro ao sair",
         "Não foi possível encerrar a sessão. Tente novamente.",
@@ -115,6 +115,7 @@ export default function OtherInformationScreen() {
       <StatusBar barStyle="dark-content" />
       <View style={styles.screen}>
         <ScrollView
+          style={styles.scroll}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
@@ -202,12 +203,22 @@ export default function OtherInformationScreen() {
                 ) : null}
               </Pressable>
             ))}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Excluir minha conta"
+              style={styles.menuButton}
+              onPress={() => setShowDeleteModal(true)}
+            >
+              <Text style={styles.menuLabel}>Excluir conta</Text>
+            </Pressable>
           </View>
+        </ScrollView>
 
-          <Pressable style={styles.signOutButton} onPress={handleSignOut}>
+        <View style={styles.signOutFooter}>
+          <Pressable accessibilityRole="button" style={styles.signOutButton} onPress={handleSignOut}>
             <Text style={styles.signOutLabel}>Sair</Text>
           </Pressable>
-        </ScrollView>
+        </View>
 
         <BottomNavBar
           activeTab="menu"
@@ -230,6 +241,8 @@ export default function OtherInformationScreen() {
           setUserProfile((prev: any) => ({ ...prev, ...updates }))
         }
       />
+
+      <DeleteAccount visible={showDeleteModal} onClose={() => setShowDeleteModal(false)} />
 
       <ChangePassword
         visible={showPasswordModal}
