@@ -118,6 +118,22 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
+  suggestionItem: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+    paddingVertical: 14,
+  },
+  suggestionText: {
+    color: "#5A5A5A",
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  suggestionMatch: {
+    color: "#0A0A0A",
+    fontWeight: "700",
+  },
   emptyMessage: {
     color: "#9C9C9C",
     fontSize: 13,

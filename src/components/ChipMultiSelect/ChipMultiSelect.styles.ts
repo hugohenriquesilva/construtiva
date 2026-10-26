@@ -67,6 +67,16 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     color: '#1A1A1A',
   },
+  optionDisabled: {
+    opacity: 0.4,
+  },
+  limitText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 13,
+    color: '#7A7A7A',
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+  },
   doneButton: {
     marginHorizontal: 20,
     marginTop: 12,

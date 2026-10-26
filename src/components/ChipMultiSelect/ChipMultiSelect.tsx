@@ -3,20 +3,27 @@ import { View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { styles } from './ChipMultiSelect.styles';
+import { SelectOption, toSelectOptions } from '../SelectField/selectOption';
 
 interface ChipMultiSelectProps {
-  options: string[];
+  options: (string | SelectOption)[];
   selected: string[];
   onChange: (selected: string[]) => void;
+  maxSelected?: number;
 }
 
 export default function ChipMultiSelect({
   options,
   selected,
   onChange,
+  maxSelected,
 }: ChipMultiSelectProps) {
   const [visible, setVisible] = useState(false);
   const [draft, setDraft] = useState<string[]>(selected);
+  const normalizedOptions = toSelectOptions(options);
+  const labelOf = (value: string) =>
+    normalizedOptions.find((o) => o.value === value)?.label ?? value;
+  const limitReached = maxSelected !== undefined && draft.length >= maxSelected;
 
   const openModal = () => {
     setDraft(selected);
@@ -24,9 +31,11 @@ export default function ChipMultiSelect({
   };
 
   const toggleDraft = (item: string) => {
-    setDraft((prev) =>
-      prev.includes(item) ? prev.filter((v) => v !== item) : [...prev, item]
-    );
+    setDraft((prev) => {
+      if (prev.includes(item)) return prev.filter((v) => v !== item);
+      if (maxSelected !== undefined && prev.length >= maxSelected) return prev;
+      return [...prev, item];
+    });
   };
 
   const removeChip = (item: string) => {
@@ -43,20 +52,22 @@ export default function ChipMultiSelect({
       <View style={styles.chipsRow}>
         {selected.map((item) => (
           <View key={item} style={styles.chip}>
-            <Text style={styles.chipText}>{item}</Text>
+            <Text style={styles.chipText}>{labelOf(item)}</Text>
             <TouchableOpacity onPress={() => removeChip(item)}>
               <Ionicons name="close" size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         ))}
 
-        <TouchableOpacity
-          style={styles.addChip}
-          onPress={openModal}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.addChipText}>adicionar +</Text>
-        </TouchableOpacity>
+        {(maxSelected === undefined || selected.length < maxSelected) && (
+          <TouchableOpacity
+            style={styles.addChip}
+            onPress={openModal}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.addChipText}>adicionar +</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <Modal
@@ -72,17 +83,24 @@ export default function ChipMultiSelect({
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHandle} />
+            {maxSelected !== undefined && (
+              <Text style={styles.limitText}>
+                Selecionadas {draft.length} de {maxSelected}
+              </Text>
+            )}
             <FlatList
-              data={options}
-              keyExtractor={(item) => item}
+              data={normalizedOptions}
+              keyExtractor={(item) => item.value}
               renderItem={({ item }) => {
-                const isChecked = draft.includes(item);
+                const isChecked = draft.includes(item.value);
+                const disabled = !isChecked && limitReached;
                 return (
                   <TouchableOpacity
-                    style={styles.option}
-                    onPress={() => toggleDraft(item)}
+                    style={[styles.option, disabled && styles.optionDisabled]}
+                    onPress={() => toggleDraft(item.value)}
+                    disabled={disabled}
                   >
-                    <Text style={styles.optionText}>{item}</Text>
+                    <Text style={styles.optionText}>{item.label}</Text>
                     <Ionicons
                       name={isChecked ? 'checkbox' : 'square-outline'}
                       size={20}

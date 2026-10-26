@@ -9,6 +9,7 @@ import { fetchAddressByCep, CepAddress } from '@/src/services/cepService';
 import { geocodeAddress, saveClientLocation, getClientLocation, Coordinates } from '@/src/services/locationService';
 import { fetchGeohash } from '@/src/services/geohashService';
 import { cepMask } from '@/src/utils/CepMask';
+import { uriToBlob } from '@/src/utils/UriToBlob';
 import GradientButton from '../GradientButton/GradientButton';
 import PhotoUploadBox from '../PhotoUploadBox/PhotoUploadBox';
 import { styles } from './EditProfile.styles';
@@ -186,17 +187,14 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
       const updates: { fullName: string; location?: boolean; photoUri?: string } = { fullName: name.trim() };
 
       if (photoUri && !photoUri.startsWith('http')) {
-        const response = await fetch(photoUri);
-        const blob = await response.blob();
-        console.log('[EditProfile] blob capturado:', { uri: photoUri, size: blob.size, type: blob.type });
+        const blob = await uriToBlob(photoUri);
         if (blob.size === 0) {
           throw new Error(`Blob vazio ao ler a foto local (uri: ${photoUri})`);
         }
         const ext = photoUri.split('.').pop() || 'jpg';
         const photoRef = ref(storage, `profilePhoto/${uid}/avatar.${ext}`);
-        const snapshot = await uploadBytes(photoRef, blob);
+        const snapshot = await uploadBytes(photoRef, blob, { contentType: blob.type || 'image/jpeg' });
         updates.photoUri = await getDownloadURL(snapshot.ref);
-        console.log('[EditProfile] upload concluído:', updates.photoUri);
       }
 
       if (coords) {
