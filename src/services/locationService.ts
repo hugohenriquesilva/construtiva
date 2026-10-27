@@ -41,7 +41,7 @@ export async function geocodeAddress(address: GeocodeAddress): Promise<Coordinat
       countrycodes: 'br',
       country: 'Brasil',
       city: address.city,
-      postalcode: address.zipCode,
+      postalcode: address.zipCode
     });
     if (address.street) structuredParams.set('street', address.street);
 

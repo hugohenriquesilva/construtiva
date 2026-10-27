@@ -1,0 +1,8 @@
+{
+  "indexes": [],
+  "fieldOverrides": [{
+    "collectionGroup": "likes",
+    "fieldPath": "uid",
+    "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }]
+  }]
+}

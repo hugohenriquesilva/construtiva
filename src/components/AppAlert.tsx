@@ -8,6 +8,8 @@ import {
   ImageSourcePropType,
   Image,
   ImageBackground,
+  StyleProp,
+  TextStyle,
 } from "react-native";
 import { Button } from "./TouchableOpacityButton";
 
@@ -18,6 +20,9 @@ interface AppAlertProps {
   subTitle: string | null;
   messages?: string[] | null;
   buttonLabel?: string;
+  buttonTextStyle?: StyleProp<TextStyle>;
+  buttonLoading?: boolean;
+  buttonLoadingLabel?: string;
   onClose: () => void;
   secondaryButtonLabel?: string;
   onSecondaryPress?: () => void;
@@ -29,6 +34,9 @@ export function AppAlert({
   subTitle,
   messages = [],
   buttonLabel = "OK",
+  buttonTextStyle,
+  buttonLoading,
+  buttonLoadingLabel,
   onClose,
   secondaryButtonLabel,
   onSecondaryPress,
@@ -64,7 +72,13 @@ export function AppAlert({
               </>
             )}
             <View style={styles.divider} />
-            <Button title={buttonLabel} onPress={onClose} />
+            <Button
+              title={buttonLabel}
+              onPress={onClose}
+              textStyle={buttonTextStyle}
+              loading={buttonLoading}
+              loadingTitle={buttonLoadingLabel}
+            />
             {secondaryButtonLabel && onSecondaryPress && (
               <TouchableOpacity
                 style={styles.secondaryButton}

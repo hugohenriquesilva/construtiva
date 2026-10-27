@@ -29,6 +29,16 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   optionLabel: { color: "#0A0A0A", fontSize: 18, fontWeight: "700" },
+  portfolioRow: { alignItems: "center", flexDirection: "row", gap: 10 },
+  portfolioOption: { flex: 1 },
+  editButton: {
+    alignItems: "center",
+    backgroundColor: "#5B69A3",
+    borderRadius: 15,
+    height: 52,
+    justifyContent: "center",
+    width: 52,
+  },
   badge: {
     borderRadius: 8,
     color: "#FFFFFF",

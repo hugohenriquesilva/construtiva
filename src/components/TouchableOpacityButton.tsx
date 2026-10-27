@@ -4,6 +4,8 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
+  StyleProp,
+  TextStyle,
 } from "react-native";
 
 interface ButtonProps {
@@ -11,6 +13,7 @@ interface ButtonProps {
   onPress: () => void;
   loading?: boolean;
   loadingTitle?: string;
+  textStyle?: StyleProp<TextStyle>;
 }
 
 export function Button({
@@ -18,6 +21,7 @@ export function Button({
   onPress,
   loading = false,
   loadingTitle = "Carregando...",
+  textStyle,
 }: ButtonProps) {
   return (
     <TouchableOpacity onPress={onPress} disabled={loading}>
@@ -30,10 +34,10 @@ export function Button({
         {loading ? (
           <>
             <ActivityIndicator color="white" size="small" />
-            <Text style={styles.text}>{loadingTitle}</Text>
+            <Text style={[styles.text, textStyle]}>{loadingTitle}</Text>
           </>
         ) : (
-          <Text style={styles.text}>{title}</Text>
+          <Text style={[styles.text, textStyle]}>{title}</Text>
         )}
       </LinearGradient>
     </TouchableOpacity>

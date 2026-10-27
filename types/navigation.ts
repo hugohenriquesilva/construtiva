@@ -10,4 +10,5 @@ export type RootStackParamList = {
   Adicionar: undefined;
   EdicaoProfissoes: undefined;
   CadastrarServico: undefined;
+  Denuncias: undefined;
 };
