@@ -21,6 +21,7 @@ import PhotoUploadBox from '../../components/PhotoUploadBox/PhotoUploadBox';
 import GradientButton from '../../components/GradientButton/GradientButton';
 import { cnpjMask } from '../../utils/CnpjMask';
 import { cepMask } from '../../utils/CepMask';
+import { PhoneMask } from '../../utils/PhoneMask';
 import { styles } from './ProfessionalFormScreen.styles';
 import {
   mockAreas,
@@ -53,6 +54,7 @@ export default function ProfessionalFormScreen() {
     mainProfession: null,
     secondaryProfessions: [],
     displayName: '',
+    whatsappPhoneNumber: '',
     hasCnpj: true,
     cnpj: '',
     experienceRange: null,
@@ -70,7 +72,7 @@ export default function ProfessionalFormScreen() {
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [geohash, setGeohash] = useState<string | null>(null);
   const [errors, setErrors] = useState<Set<keyof ProfessionalFormData>>(new Set());
-  const [successModalType, setSuccessModalType] = useState<'active' | 'inactive' | null>(null);
+  const [successModalType, setSuccessModalType] = useState<'active' | 'inactive' | 'updated' | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   // Carregar dados existentes quando a tela abre
@@ -90,6 +92,7 @@ export default function ProfessionalFormScreen() {
                 mainProfession: portfolio.mainProfession,
                 secondaryProfessions: portfolio.secondaryProfessions,
                 displayName: portfolio.displayName,
+                whatsappPhoneNumber: PhoneMask(portfolio.whatsappPhoneNumber ?? ''),
                 hasCnpj: portfolio.hasCnpj,
                 cnpj: portfolio.cnpj,
                 experienceRange: portfolio.experienceRange,
@@ -131,7 +134,11 @@ export default function ProfessionalFormScreen() {
     if (!form.photoUri) newErrors.add('photoUri');
     if (!form.area) newErrors.add('area');
     if (!form.mainProfession) newErrors.add('mainProfession');
+    if (form.secondaryProfessions.length > 3) newErrors.add('secondaryProfessions');
     if (!form.displayName.trim()) newErrors.add('displayName');
+    if (!/^[1-9]{2}9\d{8}$/.test(form.whatsappPhoneNumber.replace(/\D/g, ''))) {
+      newErrors.add('whatsappPhoneNumber');
+    }
     if (form.hasCnpj && !form.cnpj.trim()) newErrors.add('cnpj');
     if (!form.experienceRange) newErrors.add('experienceRange');
     if (!form.zipCode.trim()) newErrors.add('zipCode');
@@ -193,6 +200,8 @@ export default function ProfessionalFormScreen() {
     try {
       setLoading(true);
 
+      const portfolioExistedBeforeSave = (await getPortfolio()) !== null;
+
       // Salvar no Firestore + upload de fotos
       await savePortfolio(form);
 
@@ -225,7 +234,7 @@ export default function ProfessionalFormScreen() {
         console.error('Erro ao salvar localização:', error?.message ?? error, error?.code);
       }
 
-      setSuccessModalType(form.isActive ? 'active' : 'inactive');
+      setSuccessModalType(portfolioExistedBeforeSave ? 'updated' : form.isActive ? 'active' : 'inactive');
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível salvar o portfólio. Tente novamente.');
       console.error(error);
@@ -392,12 +401,18 @@ export default function ProfessionalFormScreen() {
 
         {/* Profissão secundária */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Selecione sua profissão secundária</Text>
+          <Text style={styles.label}>Selecione até 3 profissões secundárias</Text>
           <ChipMultiSelect
             options={mockSecondaryProfessions}
             selected={form.secondaryProfessions}
+            maxSelected={3}
             onChange={(v) => updateField('secondaryProfessions', v)}
           />
+          {form.secondaryProfessions.length > 3 && (
+            <Text style={styles.label} accessibilityLiveRegion="polite">
+              Você possui mais de 3 profissões secundárias. Remova algumas para salvar.
+            </Text>
+          )}
         </View>
 
         {/* Nome de exibição */}
@@ -411,6 +426,20 @@ export default function ProfessionalFormScreen() {
             placeholderTextColor="#9B9B9B"
             value={form.displayName}
             onChangeText={(v) => updateField('displayName', v)}
+          />
+        </View>
+
+        {/* Telefone para WhatsApp */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Telefone para WhatsApp</Text>
+          <TextInput
+            style={[styles.textInput, errors.has('whatsappPhoneNumber') && styles.inputError]}
+            placeholder="(11) 98765-4321"
+            placeholderTextColor="#9B9B9B"
+            keyboardType="phone-pad"
+            maxLength={15}
+            value={form.whatsappPhoneNumber}
+            onChangeText={(v) => updateField('whatsappPhoneNumber', PhoneMask(v))}
           />
         </View>
 
@@ -576,13 +605,17 @@ export default function ProfessionalFormScreen() {
             : require('@/assets/images/deuCerto.png')
         }
         title={
-          successModalType === 'inactive'
+          successModalType === 'updated'
+            ? 'Portfólio atualizado com sucesso!'
+            : successModalType === 'inactive'
             ? 'Que pena que desativou seu portifólio!'
             : 'Parabéns por ativar o seu portifólio'
         }
         subTitle={null}
         messages={
-          successModalType === 'inactive'
+          successModalType === 'updated'
+            ? ['Suas alterações foram salvas.']
+            : successModalType === 'inactive'
             ? [
               'Ninguém poderá mais ver os seus serviços.',
               'Seu portifólio deverá aparecer como desativado.',

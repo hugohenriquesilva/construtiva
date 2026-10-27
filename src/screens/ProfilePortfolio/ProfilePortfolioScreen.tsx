@@ -6,7 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Linking, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
@@ -33,7 +33,10 @@ export default function ProfilePortfolioScreen() {
     const route = useRoute<RouteProp<RootStackParamList, 'PortfolioProfissional'>>();
     const hideBackButton = route.params?.hideBackButton ?? false;
     const professionalUid = route.params?.professionalUid ?? null;
-    const isOwnProfile = !professionalUid;
+    const currentUid = auth.currentUser?.uid;
+    const targetUid = professionalUid ?? currentUid;
+    const isOwnProfile = !!currentUid && !!targetUid && targetUid === currentUid;
+    const isOtherProfile = !!currentUid && !!targetUid && targetUid !== currentUid;
     const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
     const [selectedWork, setSelectedWork] = useState<string | null>(null);
     const [bioExpanded, setBioExpanded] = useState(false);
@@ -48,7 +51,6 @@ export default function ProfilePortfolioScreen() {
     useFocusEffect(
         useCallback(() => {
             const loadPortfolio = async () => {
-                const targetUid = professionalUid ?? auth.currentUser?.uid;
                 if (!targetUid) return;
 
                 setPortfolio(null);
@@ -72,14 +74,13 @@ export default function ProfilePortfolioScreen() {
                 setPortfolio(data);
                 setLikesCount(data.likesCount ?? 0);
 
-                const currentUid = auth.currentUser?.uid;
                 if (currentUid) {
                     setLiked(await isPortfolioLikedByUser(targetUid, currentUid));
                 }
             };
 
             loadPortfolio();
-        }, [navigation, professionalUid, isOwnProfile])
+        }, [navigation, targetUid, currentUid, isOwnProfile])
     );
 
     const pinchGesture = Gesture.Pinch()
@@ -102,7 +103,7 @@ export default function ProfilePortfolioScreen() {
 
     async function handleToggleLike() {
         const currentUid = auth.currentUser?.uid;
-        if (!currentUid || !professionalUid || likeSaving) return;
+        if (!currentUid || !professionalUid || professionalUid === currentUid || likeSaving) return;
 
         const nextLiked = !liked;
         setLikeSaving(true);
@@ -118,6 +119,32 @@ export default function ProfilePortfolioScreen() {
             Alert.alert('Erro', 'Não foi possível curtir o portfólio. Tente novamente.');
         } finally {
             setLikeSaving(false);
+        }
+    }
+
+    async function handleContact() {
+        if (!isOtherProfile || !portfolio) return;
+
+        const digits = (portfolio.whatsappPhoneNumber ?? '').replace(/\D/g, '');
+        if (!digits) {
+            Alert.alert('Contato pelo WhatsApp', 'Este profissional ainda não disponibilizou um contato pelo WhatsApp.');
+            return;
+        }
+
+        const phoneNumber = digits.length === 13 && digits.startsWith('55')
+            ? digits
+            : digits.length === 11 ? '55' + digits : null;
+        if (!phoneNumber || !/^55[1-9]{2}9\d{8}$/.test(phoneNumber)) {
+            Alert.alert('Contato pelo WhatsApp', 'O contato deste profissional está inválido. Tente novamente mais tarde.');
+            return;
+        }
+
+        const message = 'Olá! Vi seu portfólio no Construtiva e gostaria de solicitar um serviço.';
+        const url = 'https://wa.me/' + phoneNumber + '?text=' + encodeURIComponent(message);
+        try {
+            await Linking.openURL(url);
+        } catch {
+            Alert.alert('Contato pelo WhatsApp', 'Não foi possível abrir o WhatsApp. Tente novamente.');
         }
     }
 
@@ -187,7 +214,7 @@ export default function ProfilePortfolioScreen() {
 
                                 <Text style={styles.occupation}>{portfolio.mainProfession}</Text>
 
-                                {!isOwnProfile && (
+                                {isOtherProfile && (
                                     <Pressable
                                         accessibilityLabel={liked ? 'Descurtir portfólio' : 'Curtir portfólio'}
                                         style={styles.likeRow}
@@ -250,6 +277,15 @@ export default function ProfilePortfolioScreen() {
                                     label="Editar meu portfólio"
                                     colors={COVER_COLORS}
                                     onPress={() => navigation.navigate('FormularioProfissional')}
+                                />
+                            </View>
+                        )}
+                        {isOtherProfile && (
+                            <View style={styles.editButtonWrapper}>
+                                <GradientButton
+                                    label="Entrar em contato"
+                                    colors={COVER_COLORS}
+                                    onPress={handleContact}
                                 />
                             </View>
                         )}

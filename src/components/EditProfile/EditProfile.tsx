@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -35,6 +35,9 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
   const [cepLoading, setCepLoading] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const cepInputRef = useRef<TextInput>(null);
+  const cepEditedRef = useRef(false);
+  const cepRequestRef = useRef(0);
+  const savingProfileRef = useRef(false);
 
   // Sincroniza nome e foto exibidos sem mexer no que já foi digitado no CEP,
   // já que currentName/currentPhotoUri podem chegar tarde (carregam em paralelo no ecrã pai).
@@ -48,6 +51,10 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
   useEffect(() => {
     if (!visible) return;
 
+    let active = true;
+    ++cepRequestRef.current;
+    cepEditedRef.current = false;
+    setCepLoading(false);
     setAddressPreview(null);
     setCoords(null);
     setGeohash(null);
@@ -57,6 +64,7 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
       if (!uid) return;
 
       const existing = await getClientLocation(uid);
+      if (!active || cepEditedRef.current) return;
       if (existing) {
         setCep(cepMask(existing.zipCode ?? ''));
         setCoords({ latitude: existing.latitude, longitude: existing.longitude });
@@ -65,6 +73,10 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
     };
 
     loadExistingLocation();
+    return () => {
+      active = false;
+      ++cepRequestRef.current;
+    };
   }, [visible, uid]);
 
   function handlePhotoPress() {
@@ -126,17 +138,25 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
   }
 
   async function handleCepChange(value: string) {
+    if (savingProfileRef.current) return;
+    cepEditedRef.current = true;
+    const request = ++cepRequestRef.current;
+    const isCurrent = () => request === cepRequestRef.current;
     setCep(cepMask(value));
     setAddressPreview(null);
     setCoords(null);
     setGeohash(null);
 
     const digits = value.replace(/\D/g, '');
-    if (digits.length !== 8) return;
+    if (digits.length !== 8) {
+      setCepLoading(false);
+      return;
+    }
 
     setCepLoading(true);
     try {
       const address = await fetchAddressByCep(digits);
+      if (!isCurrent()) return;
 
       if (!address) {
         Alert.alert(
@@ -155,6 +175,7 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
         zipCode: value,
       });
 
+      if (!isCurrent()) return;
       if (!newCoords) {
         Alert.alert(
           'Endereço não localizado',
@@ -165,22 +186,25 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
       setCoords(newCoords);
 
       const newGeohash = await fetchGeohash(newCoords.latitude, newCoords.longitude);
+      if (!isCurrent()) return;
       setGeohash(newGeohash);
 
       Alert.alert('Sucesso', 'Dados de endereço encontrados com sucesso');
     } finally {
-      setCepLoading(false);
+      if (isCurrent()) setCepLoading(false);
     }
   }
 
   async function handleSave() {
-    if (!uid || cepLoading || savingProfile) return;
+    if (!uid || cepLoading || savingProfileRef.current) return;
 
     if (!name.trim()) {
       Alert.alert('Erro', 'Informe seu nome.');
       return;
     }
 
+    const deleteResidentialLocation = cepEditedRef.current && cep.replace(/\D/g, '') === '';
+    savingProfileRef.current = true;
     setSavingProfile(true);
     try {
       const updates: { fullName: string; location?: boolean; photoUri?: string } = { fullName: name.trim() };
@@ -199,13 +223,21 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
         console.log('[EditProfile] upload concluído:', updates.photoUri);
       }
 
-      if (coords) {
+      if (!deleteResidentialLocation && coords) {
         const digits = cep.replace(/\D/g, '');
         await saveClientLocation(uid, coords.latitude, coords.longitude, geohash, digits);
         updates.location = true;
       }
 
-      await setDoc(doc(db, 'users', uid), updates, { merge: true });
+      if (deleteResidentialLocation) {
+        updates.location = false;
+        const batch = writeBatch(db);
+        batch.delete(doc(db, 'clientLocations', uid));
+        batch.set(doc(db, 'users', uid), updates, { merge: true });
+        await batch.commit();
+      } else {
+        await setDoc(doc(db, 'users', uid), updates, { merge: true });
+      }
 
       onSaved(updates);
       onClose();
@@ -213,6 +245,7 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
       console.error('Erro ao salvar perfil:', error);
       Alert.alert('Erro', 'Não foi possível salvar as alterações. Tente novamente.');
     } finally {
+      savingProfileRef.current = false;
       setSavingProfile(false);
     }
   }
@@ -256,6 +289,7 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
             <Text style={styles.label}>CEP da residência</Text>
             <TextInput
               ref={cepInputRef}
+              editable={!savingProfile}
               style={styles.input}
               placeholder="00000-000"
               placeholderTextColor="#9B9B9B"

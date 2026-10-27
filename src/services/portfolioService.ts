@@ -19,6 +19,7 @@ import { ProfessionalFormData } from '../../types/professionalForm';
 
 export interface PortfolioData {
     displayName: string;
+    whatsappPhoneNumber?: string;
     area: string | null;
     mainProfession: string | null;
     secondaryProfessions: string[];
@@ -42,6 +43,9 @@ export interface PortfolioData {
 export async function savePortfolio(formData: ProfessionalFormData): Promise<void> {
     const uid = auth.currentUser?.uid;
     if (!uid) throw new Error('Usuário não autenticado');
+    if (formData.secondaryProfessions.length > 3) {
+        throw new Error('Selecione no máximo 3 profissões secundárias.');
+    }
 
     try {
         const portfolioRef = doc(db, 'portfolios', uid);
@@ -65,6 +69,7 @@ export async function savePortfolio(formData: ProfessionalFormData): Promise<voi
 
         const portfolioData: PortfolioData = {
             displayName: formData.displayName,
+            whatsappPhoneNumber: formData.whatsappPhoneNumber.replace(/\D/g, ''),
             area: formData.area,
             mainProfession: formData.mainProfession,
             secondaryProfessions: formData.secondaryProfessions,

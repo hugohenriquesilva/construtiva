@@ -10,6 +10,7 @@ export interface ProfessionalFormData {
   mainProfession: string | null;
   secondaryProfessions: string[];
   displayName: string;
+  whatsappPhoneNumber: string;
   hasCnpj: boolean;
   cnpj: string;
   experienceRange: string | null;

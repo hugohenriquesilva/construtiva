@@ -40,20 +40,25 @@ export default function BuscaPortfolioScreen() {
   // Aproveita para carregar o geohash do cliente, usado na busca.
   useFocusEffect(
     useCallback(() => {
+      let active = true;
+      setUserGeohash(null);
+      setResults([]);
       const checkLocation = async () => {
         const uid = auth.currentUser?.uid;
         if (!uid) return;
 
         const userSnap = await getDoc(doc(db, "users", uid));
+        if (!active) return;
         if (userSnap.exists() && userSnap.data().location === true) {
           const clientLocation = await getClientLocation(uid);
+          if (!active) return;
           setUserGeohash(clientLocation?.geohash ?? null);
           return;
         }
 
         Alert.alert(
           "CEP não cadastrado",
-          "Você ainda não possui um CEP cadastrado. Cadastre seu CEP para encontrar profissionais próximos a você",
+          "Adicione o CEP de onde deseja encontrar um profissional",
           [
             {
               text: "OK",
@@ -66,6 +71,11 @@ export default function BuscaPortfolioScreen() {
       };
 
       checkLocation();
+      return () => {
+        active = false;
+        setUserGeohash(null);
+        setResults([]);
+      };
     }, [navigation]),
   );
 
@@ -80,12 +90,14 @@ export default function BuscaPortfolioScreen() {
       return;
     }
 
+    let active = true;
     setSearching(true);
     const timeout = setTimeout(async () => {
       const response = await searchProfessionalsByGeoHash(
         profession,
         userGeohash,
       );
+      if (!active) return;
       setResults(response.results);
       setEmptyMessage(
         response.results.length === 0 ? (response.message ?? null) : null,
@@ -93,7 +105,10 @@ export default function BuscaPortfolioScreen() {
       setSearching(false);
     }, 400);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
   }, [searchQuery, userGeohash]);
 
   const handleTabPress = (tab: BottomTabKey) => {
