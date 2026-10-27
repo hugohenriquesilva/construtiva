@@ -69,9 +69,7 @@ export default function OtherInformationScreen() {
             const userRef = doc(db, "users", uid);
             const userSnap = await getDoc(userRef);
             if (userSnap.exists()) {
-              const data = userSnap.data();
-              console.log("[OtherInformationScreen] users/{uid} carregado:", { photoUri: data.photoUri });
-              setUserProfile(data);
+              setUserProfile(userSnap.data());
             }
           }
         } catch (error) {
@@ -141,19 +139,6 @@ export default function OtherInformationScreen() {
                   <Image
                     source={{ uri: userProfile.photoUri }}
                     style={styles.avatarImage}
-                    onError={(e) =>
-                      console.log(
-                        "[OtherInformationScreen] falha ao carregar avatar:",
-                        userProfile.photoUri,
-                        e.nativeEvent.error,
-                      )
-                    }
-                    onLoad={() =>
-                      console.log(
-                        "[OtherInformationScreen] avatar carregado com sucesso:",
-                        userProfile.photoUri,
-                      )
-                    }
                   />
                 ) : (
                   <MaterialCommunityIcons
@@ -174,6 +159,14 @@ export default function OtherInformationScreen() {
           )}
 
           <View style={styles.menuList}>
+            {userProfile?.role === "admin" && (
+              <Pressable
+                style={styles.menuButton}
+                onPress={() => navigation.navigate("EdicaoProfissoes")}
+              >
+                <Text style={styles.menuLabel}>Edição de profissões</Text>
+              </Pressable>
+            )}
             {menuItems.map((item) => (
               <Pressable
                 key={item.label}

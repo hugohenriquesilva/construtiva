@@ -1,0 +1,98 @@
+rules_version = '2';
+
+// ATENÇÃO: este arquivo contém apenas as regras de users, professions e portfolios.
+// Ao juntar com as regras atuais do Console, SUBSTITUA os blocos existentes dessas três
+// coleções (não some). No Firestore, regras que batem no mesmo caminho são combinadas com OU:
+// se uma regra antiga mais permissiva continuar lá, ela anula as validações abaixo.
+// Mantenha como estão as regras de: portfolios/{uid}/likes, clientLocations, professionalLocations.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', null) == 'admin';
+    }
+
+    // ---------------------------------------------------------------- users
+    // role "admin" nunca é gravada pelo app: só pelo Admin SDK (scripts/admin.js), que ignora estas regras.
+    function validRoleChange(uid) {
+      let before = resource.data.get('role', null);
+      let after = request.resource.data.get('role', null);
+      let portfolioPath = /databases/$(database)/documents/portfolios/$(uid);
+      return before == after
+        // criou o portfólio (mesmo batch): client -> professional
+        || (after == 'professional' && before in ['client', null] && existsAfter(portfolioPath))
+        // excluiu o portfólio (mesmo batch): professional -> client
+        || (after == 'client' && before == 'professional' && !existsAfter(portfolioPath));
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && request.resource.data.get('role', null) == 'client';
+      allow update: if isOwner(uid) && validRoleChange(uid);
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------- professions
+    // Nome em MAIÚSCULAS e sem espaços nas pontas; normalizedName (sem acentos) é usado contra duplicatas.
+    function validProfession() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['name', 'normalizedName', 'createdAt', 'updatedAt'])
+        && d.name is string
+        && d.name.size() > 0
+        && d.name == d.name.trim().upper()
+        && d.normalizedName is string
+        && d.normalizedName.size() > 0;
+    }
+
+    match /professions/{professionId} {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin() && validProfession();
+      // O app bloqueia a exclusão de profissões em uso antes de chegar aqui
+      allow delete: if isAdmin();
+    }
+
+    // ----------------------------------------------------------- portfolios
+    function professionExists(id) {
+      return id is string && exists(/databases/$(database)/documents/professions/$(id));
+    }
+
+    // Toda profissão gravada no portfólio precisa existir em "professions" (principal + até 3 secundárias).
+    // As regras não têm laço, por isso cada posição da lista é verificada individualmente.
+    function validPortfolio() {
+      let d = request.resource.data;
+      let secondary = d.get('secondaryProfessionIds', []);
+      return !d.keys().hasAny(['area', 'mainProfession', 'secondaryProfessions'])
+        && professionExists(d.get('mainProfessionId', null))
+        && secondary is list
+        && secondary.size() <= 3
+        && !(d.mainProfessionId in secondary)
+        && (secondary.size() < 1 || professionExists(secondary[0]))
+        && (secondary.size() < 2 || professionExists(secondary[1]))
+        && (secondary.size() < 3 || professionExists(secondary[2]));
+    }
+
+    // Curtida de outro usuário: só pode mexer em likesCount, de 1 em 1
+    function isLikeCounterChange() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount'])
+        && (request.resource.data.likesCount - resource.data.get('likesCount', 0)) in [1, -1];
+    }
+
+    match /portfolios/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(uid) && validPortfolio();
+      allow update: if (isOwner(uid) && validPortfolio())
+        || (isSignedIn() && isLikeCounterChange());
+      allow delete: if isOwner(uid);
+    }
+  }
+}

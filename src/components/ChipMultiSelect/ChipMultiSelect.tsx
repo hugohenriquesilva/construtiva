@@ -3,9 +3,10 @@ import { View, Text, TouchableOpacity, Modal, FlatList, AccessibilityInfo } from
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { styles } from './ChipMultiSelect.styles';
+import { SelectOption, toSelectOptions } from '../SelectField/selectOption';
 
 interface ChipMultiSelectProps {
-  options: string[];
+  options: (string | SelectOption)[];
   selected: string[];
   onChange: (selected: string[]) => void;
   maxSelected?: number;
@@ -19,6 +20,10 @@ export default function ChipMultiSelect({
 }: ChipMultiSelectProps) {
   const [visible, setVisible] = useState(false);
   const [draft, setDraft] = useState<string[]>(selected);
+  const normalizedOptions = toSelectOptions(options);
+  const labelOf = (value: string) =>
+    normalizedOptions.find((o) => o.value === value)?.label ?? value;
+  const limitReached = maxSelected !== undefined && draft.length >= maxSelected;
 
   const [showLimitNotice, setShowLimitNotice] = useState(false);
   const limitMessage = `Limite de ${maxSelected} profissões. Remova uma para adicionar outra.`;
@@ -69,7 +74,7 @@ export default function ChipMultiSelect({
       <View style={styles.chipsRow}>
         {selected.map((item) => (
           <View key={item} style={styles.chip}>
-            <Text style={styles.chipText}>{item}</Text>
+            <Text style={styles.chipText}>{labelOf(item)}</Text>
             <TouchableOpacity onPress={() => removeChip(item)}>
               <Ionicons name="close" size={16} color="#FFFFFF" />
             </TouchableOpacity>
@@ -83,6 +88,7 @@ export default function ChipMultiSelect({
           accessibilityHint={isAddDisabled ? limitMessage : undefined}
           onPress={openModal}
           activeOpacity={0.7}
+          disabled={isAddDisabled}
         >
           <Text style={styles.addChipText}>adicionar +</Text>
         </TouchableOpacity>
@@ -104,20 +110,25 @@ export default function ChipMultiSelect({
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHandle} />
+            {maxSelected !== undefined && (
+              <Text style={styles.limitText}>
+                Selecionadas {draft.length} de {maxSelected}
+              </Text>
+            )}
             <FlatList
-              data={options}
-              keyExtractor={(item) => item}
+              data={normalizedOptions}
+              keyExtractor={(item) => item.value}
               renderItem={({ item }) => {
-                const isChecked = draft.includes(item);
+                const isChecked = draft.includes(item.value);
                 const isDisabled = !isChecked && maxSelected !== undefined && draft.length >= maxSelected;
                 return (
                   <TouchableOpacity
-                    style={styles.option}
+                    style={[styles.option, isDisabled && styles.optionDisabled]}
                     disabled={isDisabled}
                     accessibilityState={{ checked: isChecked, disabled: isDisabled }}
-                    onPress={() => toggleDraft(item)}
+                    onPress={() => toggleDraft(item.value)}
                   >
-                    <Text style={styles.optionText}>{item}</Text>
+                    <Text style={styles.optionText}>{item.label}</Text>
                     <Ionicons
                       name={isChecked ? 'checkbox' : 'square-outline'}
                       size={20}

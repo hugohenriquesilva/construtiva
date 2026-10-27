@@ -11,6 +11,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
+import { DEFAULT_USER_ROLE } from "@/types/user";
 
 const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope("https://www.googleapis.com/auth/userinfo.email");
@@ -58,6 +59,7 @@ export async function signUp(data: SignUpData) {
       email: data.email,
       createdAt: new Date().toISOString(),
       location: false,
+      role: DEFAULT_USER_ROLE,
     });
   } catch (error) {
     console.log(error);
@@ -79,6 +81,7 @@ async function ensureUserProfile(user: User): Promise<void> {
     email: user.email ?? "",
     createdAt: new Date().toISOString(),
     location: false,
+    role: DEFAULT_USER_ROLE,
   });
 }
 

@@ -45,3 +45,5 @@ app-example
 .env
 node_modules/
 .expo/
+# chave de serviço do Firebase usada pelos scripts administrativos
+serviceAccountKey.json

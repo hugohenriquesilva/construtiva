@@ -23,14 +23,11 @@ import { cnpjMask } from '../../utils/CnpjMask';
 import { cepMask } from '../../utils/CepMask';
 import { PhoneMask } from '../../utils/PhoneMask';
 import { styles } from './ProfessionalFormScreen.styles';
-import {
-  mockAreas,
-  mockMainProfessions,
-  mockSecondaryProfessions,
-  mockExperienceRanges,
-} from './ProfessionalFormScreen.mock';
+import { mockExperienceRanges } from './ProfessionalFormScreen.mock';
 import * as ImagePicker from 'expo-image-picker';
-import { ProfessionalFormData } from '../../../types/professionalForm';
+import { MAX_SECONDARY_PROFESSIONS, ProfessionalFormData } from '../../../types/professionalForm';
+import { useProfessions } from '../../hooks/useProfessions';
+import { formatProfessionName } from '../../utils/formatProfessionName';
 import { savePortfolio, getPortfolio } from '../../services/portfolioService';
 import { fetchAddressByCep } from '../../services/cepService';
 import { geocodeAddress, saveUserLocation, Coordinates } from '../../services/locationService';
@@ -50,9 +47,8 @@ export default function ProfessionalFormScreen() {
   const [form, setForm] = useState<ProfessionalFormData>({
     photoUri: null,
     isActive: false,
-    area: null,
-    mainProfession: null,
-    secondaryProfessions: [],
+    mainProfessionId: null,
+    secondaryProfessionIds: [],
     displayName: '',
     whatsappPhoneNumber: '',
     hasCnpj: true,
@@ -74,6 +70,14 @@ export default function ProfessionalFormScreen() {
   const [errors, setErrors] = useState<Set<keyof ProfessionalFormData>>(new Set());
   const [successModalType, setSuccessModalType] = useState<'active' | 'inactive' | 'updated' | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const { professions, loading: professionsLoading, error: professionsError } = useProfessions();
+
+  const professionOptions = professions.map((p) => ({
+    value: p.id,
+    label: formatProfessionName(p.name),
+  }));
+  // A profissão principal não pode ser repetida como secundária
+  const secondaryOptions = professionOptions.filter((o) => o.value !== form.mainProfessionId);
 
   // Carregar dados existentes quando a tela abre
   useFocusEffect(
@@ -88,9 +92,8 @@ export default function ProfessionalFormScreen() {
               setForm({
                 photoUri: portfolio.photoUri,
                 isActive: portfolio.isActive,
-                area: portfolio.area,
-                mainProfession: portfolio.mainProfession,
-                secondaryProfessions: portfolio.secondaryProfessions,
+                mainProfessionId: portfolio.mainProfessionId ?? null,
+                secondaryProfessionIds: portfolio.secondaryProfessionIds ?? [],
                 displayName: portfolio.displayName,
                 whatsappPhoneNumber: PhoneMask(portfolio.whatsappPhoneNumber ?? ''),
                 hasCnpj: portfolio.hasCnpj,
@@ -132,9 +135,10 @@ export default function ProfessionalFormScreen() {
     const newErrors = new Set<keyof ProfessionalFormData>();
 
     if (!form.photoUri) newErrors.add('photoUri');
-    if (!form.area) newErrors.add('area');
-    if (!form.mainProfession) newErrors.add('mainProfession');
-    if (form.secondaryProfessions.length > 3) newErrors.add('secondaryProfessions');
+    if (!form.mainProfessionId) newErrors.add('mainProfessionId');
+    if (form.secondaryProfessionIds.length > MAX_SECONDARY_PROFESSIONS) {
+      newErrors.add('secondaryProfessionIds');
+    }
     if (!form.displayName.trim()) newErrors.add('displayName');
     if (!/^[1-9]{2}9\d{8}$/.test(form.whatsappPhoneNumber.replace(/\D/g, ''))) {
       newErrors.add('whatsappPhoneNumber');
@@ -375,40 +379,39 @@ export default function ProfessionalFormScreen() {
           </View>
         </View>
 
-        {/* Área de atuação */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Selecione sua área de atuação</Text>
-          <SelectField
-            placeholder="Selecione"
-            value={form.area}
-            options={mockAreas}
-            onSelect={(v) => updateField('area', v)}
-            error={errors.has('area')}
-          />
-        </View>
-
         {/* Profissão principal */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Selecione sua profissão principal</Text>
           <SelectField
-            placeholder="Selecione"
-            value={form.mainProfession}
-            options={mockMainProfessions}
-            onSelect={(v) => updateField('mainProfession', v)}
-            error={errors.has('mainProfession')}
+            placeholder={professionsLoading ? 'Carregando...' : 'Selecione'}
+            value={form.mainProfessionId}
+            options={professionOptions}
+            onSelect={(v) => {
+              updateField('mainProfessionId', v);
+              updateField(
+                'secondaryProfessionIds',
+                form.secondaryProfessionIds.filter((id) => id !== v)
+              );
+            }}
+            error={errors.has('mainProfessionId')}
           />
+          {professionsError && (
+            <Text style={styles.label}>Não foi possível carregar as profissões.</Text>
+          )}
         </View>
 
         {/* Profissão secundária */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Selecione até 3 profissões secundárias</Text>
+          <Text style={styles.label}>
+            Selecione suas profissões secundárias (até {MAX_SECONDARY_PROFESSIONS})
+          </Text>
           <ChipMultiSelect
-            options={mockSecondaryProfessions}
-            selected={form.secondaryProfessions}
-            maxSelected={3}
-            onChange={(v) => updateField('secondaryProfessions', v)}
+            options={secondaryOptions}
+            selected={form.secondaryProfessionIds}
+            onChange={(v) => updateField('secondaryProfessionIds', v)}
+            maxSelected={MAX_SECONDARY_PROFESSIONS}
           />
-          {form.secondaryProfessions.length > 3 && (
+          {form.secondaryProfessionIds.length > MAX_SECONDARY_PROFESSIONS && (
             <Text style={styles.label} accessibilityLiveRegion="polite">
               Você possui mais de 3 profissões secundárias. Remova algumas para salvar.
             </Text>

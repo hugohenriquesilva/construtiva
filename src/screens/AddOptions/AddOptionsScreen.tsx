@@ -11,13 +11,6 @@ import { BottomTabKey } from "../../../types/home";
 import BottomNavBar from "../../components/BottomNavBar/BottomNavBar";
 import { styles } from "./AddOptionsScreen.styles";
 
-function showMockAction(title: string) {
-  Alert.alert(
-    title,
-    "Esta ação será conectada à funcionalidade correspondente em breve.",
-  );
-}
-
 export default function AddOptionsScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -79,7 +72,7 @@ export default function AddOptionsScreen() {
 
             <Pressable
               style={styles.optionButton}
-              onPress={() => showMockAction("Cadastrar serviço")}
+              onPress={() => navigation.navigate("CadastrarServico")}
             >
               <Text style={styles.optionLabel}>Cadastrar serviço</Text>
             </Pressable>
