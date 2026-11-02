@@ -1,0 +1,77 @@
+import { StyleSheet } from "react-native";
+
+export const styles = StyleSheet.create({
+  safeArea: { backgroundColor: "#FFFFFF", flex: 1 },
+  screen: { backgroundColor: "#FFFFFF", flex: 1 },
+  header: {
+    alignItems: "center",
+    flexDirection: "row",
+    marginBottom: 14,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  backButton: {
+    alignItems: "center",
+    height: 40,
+    justifyContent: "center",
+    marginRight: 8,
+    width: 40,
+  },
+  title: {
+    color: "#1A1A1A",
+    fontFamily: "Poppins-Bold",
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  filters: {
+    backgroundColor: "#F5F5F5",
+    borderRadius: 22,
+    flexDirection: "row",
+    marginHorizontal: 20,
+    marginBottom: 14,
+    padding: 4,
+  },
+  filterButton: {
+    alignItems: "center",
+    borderRadius: 18,
+    flex: 1,
+    minHeight: 38,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  filterButtonSelected: { backgroundColor: "#FFFFFF" },
+  filterText: {
+    color: "#777777",
+    fontFamily: "Poppins-Regular",
+    fontSize: 13,
+  },
+  filterTextSelected: { color: "#5B69A3", fontFamily: "Poppins-Bold" },
+  listContent: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  stateContainer: {
+    alignItems: "center",
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+  },
+  stateTitle: {
+    color: "#1A1A1A",
+    fontFamily: "Poppins-Bold",
+    fontSize: 16,
+    textAlign: "center",
+  },
+  stateText: {
+    color: "#777777",
+    fontFamily: "Poppins-Regular",
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 8,
+    textAlign: "center",
+  },
+  retryButton: { marginTop: 12, padding: 10 },
+  actionText: { color: "#5B69A3", fontSize: 14, fontWeight: "700" },
+});

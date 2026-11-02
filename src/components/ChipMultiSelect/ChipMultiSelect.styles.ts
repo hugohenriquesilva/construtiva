@@ -29,6 +29,9 @@ export const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
   },
+  addChipDisabled: {
+    opacity: 0.5,
+  },
   addChipText: {
     fontFamily: 'Poppins-Bold',
     fontSize: 14,
@@ -54,6 +57,12 @@ export const styles = StyleSheet.create({
     backgroundColor: '#D9D9D9',
     alignSelf: 'center',
     marginBottom: 12,
+  },
+  selectionHint: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 13,
+    color: '#7D7D7D',
+    marginTop: 6,
   },
   option: {
     flexDirection: 'row',

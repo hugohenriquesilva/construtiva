@@ -17,6 +17,10 @@ import BuscaPortfolioScreen from '../screens/BuscaPortfolio/BuscaPortfolioScreen
 import AddOptionsScreen from '../screens/AddOptions/AddOptionsScreen';
 import ProfessionsAdminScreen from '../screens/ProfessionsAdmin/ProfessionsAdminScreen';
 import CreateServiceScreen from "@/src/screens/AddService/CreateServiceScreen";
+import ReportsAdminScreen from '../screens/ReportsAdmin/ReportsAdminScreen';
+import BuscaServicosScreen from '../screens/BuscaServicos/BuscaServicosScreen';
+import ServiceDetailsScreen from '../screens/ServiceDetails/ServiceDetailsScreen';
+import MyServicesScreen from '../screens/MyServices/MyServicesScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -40,9 +44,9 @@ export default function AppNavigator() {
 
   if (loading) {
     return (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <ActivityIndicator size="large" />
-        </View>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
     );
   }
 
@@ -62,7 +66,11 @@ export default function AppNavigator() {
             <Stack.Screen name="MaisInformacoes" component={OtherInformationScreen} />
             <Stack.Screen name="Adicionar" component={AddOptionsScreen} />
             <Stack.Screen name="CadastrarServico" component={CreateServiceScreen} />
+            <Stack.Screen name="MeusServicos" component={MyServicesScreen} />
+            <Stack.Screen name="BuscaServicos" component={BuscaServicosScreen} />
+            <Stack.Screen name="DetalhesServico" component={ServiceDetailsScreen} />
             <Stack.Screen name="EdicaoProfissoes" component={ProfessionsAdminScreen} />
+            <Stack.Screen name="Denuncias" component={ReportsAdminScreen} />
           </>
         ) : (
           <>

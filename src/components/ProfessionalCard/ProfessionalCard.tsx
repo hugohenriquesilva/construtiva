@@ -16,7 +16,13 @@ export default function ProfessionalCard({
 }: ProfessionalCardProps) {
   return (
     <View style={styles.card}>
-      <Image source={{ uri: professional.avatarUrl }} style={styles.avatar} />
+      {professional.avatarUrl ? (
+        <Image source={{ uri: professional.avatarUrl }} style={styles.avatar} />
+      ) : (
+        <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#F2F2F2' }]}>
+          <Ionicons name="person-outline" size={26} color="#8A8A8E" />
+        </View>
+      )}
 
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>
@@ -37,7 +43,14 @@ export default function ProfessionalCard({
           </View>
         )}
 
+        <View style={styles.cityRow}>
+          <Ionicons name="heart" size={14} color="#D64550" />
+          <Text style={styles.city}> {professional.likesCount ?? 0} curtidas</Text>
+        </View>
+
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={`Ver perfil de ${professional.name}`}
           onPress={() => onPress?.(professional)}
           activeOpacity={0.7}
         >

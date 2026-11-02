@@ -6,21 +6,31 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Linking, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import BottomNavBar from '../../components/BottomNavBar/BottomNavBar';
 import GradientButton from '../../components/GradientButton/GradientButton';
+import { AppAlert } from '../../components/AppAlert';
 import { styles } from './ProfilePortfolio.styles';
 import { BottomTabKey } from '../../../types/home';
 import { RootStackParamList } from '../../../types/navigation';
-import { getPortfolio, isPortfolioLikedByUser, togglePortfolioLike, PortfolioData } from '../../services/portfolioService';
+import {
+    deletePortfolioAsAdmin,
+    getPortfolio,
+    getUserRole,
+    isPortfolioLikedByUser,
+    togglePortfolioLike,
+    PortfolioData,
+} from '../../services/portfolioService';
+import { reportProfile } from '../../services/reportService';
 import { auth } from '@/firebaseConfig';
 import { useProfessions } from '../../hooks/useProfessions';
 import { formatProfessionName } from '../../utils/formatProfessionName';
 
 const COVER_COLORS: [string, string] = ['rgba(91, 105, 163, 1)', 'rgba(210, 110, 56, 1)'];
+const DELETE_COLORS: [string, string] = ['#E10B0B', '#B3261E'];
 
 function chunk<T>(items: T[], size: number): T[][] {
     const rows: T[][] = [];
@@ -35,7 +45,10 @@ export default function ProfilePortfolioScreen() {
     const route = useRoute<RouteProp<RootStackParamList, 'PortfolioProfissional'>>();
     const hideBackButton = route.params?.hideBackButton ?? false;
     const professionalUid = route.params?.professionalUid ?? null;
-    const isOwnProfile = !professionalUid;
+    const currentUid = auth.currentUser?.uid;
+    const targetUid = professionalUid ?? currentUid;
+    const isOwnProfile = !!currentUid && !!targetUid && targetUid === currentUid;
+    const isOtherProfile = !!currentUid && !!targetUid && targetUid !== currentUid;
     const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
     const [selectedWork, setSelectedWork] = useState<string | null>(null);
     const [bioExpanded, setBioExpanded] = useState(false);
@@ -43,6 +56,11 @@ export default function ProfilePortfolioScreen() {
     const { namesById } = useProfessions();
     const [likesCount, setLikesCount] = useState(0);
     const [likeSaving, setLikeSaving] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [showReportConfirm, setShowReportConfirm] = useState(false);
+    const [reportSaving, setReportSaving] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const scale = useSharedValue(1);
     const savedScale = useSharedValue(1);
 
@@ -51,7 +69,6 @@ export default function ProfilePortfolioScreen() {
     useFocusEffect(
         useCallback(() => {
             const loadPortfolio = async () => {
-                const targetUid = professionalUid ?? auth.currentUser?.uid;
                 if (!targetUid) return;
 
                 setPortfolio(null);
@@ -67,7 +84,13 @@ export default function ProfilePortfolioScreen() {
                     return;
                 }
 
-                if (!data || !data.isActive) {
+                // Admin também abre portfólios desativados, para analisar denúncias.
+                // Exibição apenas: a exclusão é validada pelas regras do Firestore.
+                const currentUid = auth.currentUser?.uid;
+                const admin = currentUid ? (await getUserRole(currentUid).catch(() => null)) === 'admin' : false;
+                setIsAdmin(admin);
+
+                if (!data || (!data.isActive && !admin)) {
                     Alert.alert('Perfil indisponível', 'Este profissional não está mais disponível.');
                     navigation.goBack();
                     return;
@@ -75,14 +98,13 @@ export default function ProfilePortfolioScreen() {
                 setPortfolio(data);
                 setLikesCount(data.likesCount ?? 0);
 
-                const currentUid = auth.currentUser?.uid;
                 if (currentUid) {
                     setLiked(await isPortfolioLikedByUser(targetUid, currentUid));
                 }
             };
 
             loadPortfolio();
-        }, [navigation, professionalUid, isOwnProfile])
+        }, [navigation, targetUid, currentUid, isOwnProfile])
     );
 
     const pinchGesture = Gesture.Pinch()
@@ -98,14 +120,14 @@ export default function ProfilePortfolioScreen() {
     }));
 
     const closePreview = () => {
-        scale.value = withTiming(1);
+        scale.set(withTiming(1));
         savedScale.value = 1;
         setSelectedWork(null);
     };
 
     async function handleToggleLike() {
         const currentUid = auth.currentUser?.uid;
-        if (!currentUid || !professionalUid || likeSaving) return;
+        if (!currentUid || !professionalUid || professionalUid === currentUid || likeSaving) return;
 
         const nextLiked = !liked;
         setLikeSaving(true);
@@ -124,11 +146,81 @@ export default function ProfilePortfolioScreen() {
         }
     }
 
+    async function handleContact() {
+        if (!isOtherProfile || !portfolio) return;
+
+        const digits = (portfolio.whatsappPhoneNumber ?? '').replace(/\D/g, '');
+        if (!digits) {
+            Alert.alert('Contato pelo WhatsApp', 'Este profissional ainda não disponibilizou um contato pelo WhatsApp.');
+            return;
+        }
+
+        const phoneNumber = digits.length === 13 && digits.startsWith('55')
+            ? digits
+            : digits.length === 11 ? '55' + digits : null;
+        if (!phoneNumber || !/^55[1-9]{2}9\d{8}$/.test(phoneNumber)) {
+            Alert.alert('Contato pelo WhatsApp', 'O contato deste profissional está inválido. Tente novamente mais tarde.');
+            return;
+        }
+
+        const message = 'Olá! Vi seu portfólio no Construtiva e gostaria de solicitar um serviço.';
+        const url = 'https://wa.me/' + phoneNumber + '?text=' + encodeURIComponent(message);
+        try {
+            await Linking.openURL(url);
+        } catch {
+            Alert.alert('Contato pelo WhatsApp', 'Não foi possível abrir o WhatsApp. Tente novamente.');
+        }
+    }
+
+    async function handleConfirmReport() {
+        const currentUid = auth.currentUser?.uid;
+        if (!currentUid || !professionalUid || !portfolio || reportSaving) return;
+
+        setReportSaving(true);
+        try {
+            await reportProfile(professionalUid, portfolio.displayName, currentUid);
+            setShowReportConfirm(false);
+            Alert.alert('Denúncia enviada', 'Obrigado! Nossa equipe vai analisar este perfil.');
+        } catch (error) {
+            setShowReportConfirm(false);
+            if (error instanceof Error && error.message === 'report-duplicate') {
+                Alert.alert('Denúncia já enviada', 'Você já denunciou este perfil.');
+            } else {
+                console.error('Erro ao denunciar perfil:', error);
+                Alert.alert('Erro', 'Não foi possível enviar a denúncia. Tente novamente.');
+            }
+        } finally {
+            setReportSaving(false);
+        }
+    }
+
+    async function handleConfirmDelete() {
+        if (!professionalUid || !isAdmin || deleting) return;
+
+        setDeleting(true);
+        try {
+            await deletePortfolioAsAdmin(professionalUid);
+            setShowDeleteConfirm(false);
+            Alert.alert('Perfil excluído', 'O perfil foi excluído com sucesso.', [
+                { text: 'OK', onPress: () => navigation.goBack() },
+            ]);
+        } catch (error) {
+            console.error('Erro ao excluir perfil:', error);
+            setShowDeleteConfirm(false);
+            Alert.alert('Erro', 'Não foi possível excluir o perfil. Tente novamente.');
+        } finally {
+            setDeleting(false);
+        }
+    }
+
+
     const handleTabPress = (tab: BottomTabKey) => {
         if (tab === 'home') {
             navigation.navigate('Home');
         } else if (tab === 'professional') {
             navigation.navigate('BuscaPortfolio');
+        } else if (tab === 'services') {
+            navigation.navigate('BuscaServicos');
         } else if (tab === 'menu') {
             navigation.navigate('MaisInformacoes');
         }
@@ -179,7 +271,18 @@ export default function ProfilePortfolioScreen() {
 
                         <View style={styles.headingRow}>
                             <View style={styles.headingText}>
-                                <Text style={styles.name}>{portfolio.displayName}</Text>
+                                <View style={styles.nameRow}>
+                                    <Text style={[styles.name, styles.nameShrink]}>{portfolio.displayName}</Text>
+                                    {!isOwnProfile && !isAdmin && (
+                                        <Pressable
+                                            accessibilityLabel="Denunciar perfil"
+                                            hitSlop={10}
+                                            onPress={() => setShowReportConfirm(true)}
+                                        >
+                                            <Feather name="flag" size={22} color="#B3261E" />
+                                        </Pressable>
+                                    )}
+                                </View>
 
                                 {!!portfolio.zipCode && (
                                     <View style={styles.locationRow}>
@@ -194,7 +297,7 @@ export default function ProfilePortfolioScreen() {
                                     )}
                                 </Text>
 
-                                {!isOwnProfile && (
+                                {isOtherProfile && (
                                     <Pressable
                                         accessibilityLabel={liked ? 'Descurtir portfólio' : 'Curtir portfólio'}
                                         style={styles.likeRow}
@@ -260,6 +363,25 @@ export default function ProfilePortfolioScreen() {
                                 />
                             </View>
                         )}
+                        {isOtherProfile && (
+                            <View style={styles.editButtonWrapper}>
+                                <GradientButton
+                                    label="Entrar em contato"
+                                    colors={COVER_COLORS}
+                                    onPress={handleContact}
+                                />
+                            </View>
+                        )}
+                        {!isOwnProfile && isAdmin && (
+                            <View style={styles.editButtonWrapper}>
+                                <GradientButton
+                                    label={deleting ? 'Excluindo...' : 'Excluir perfil'}
+                                    colors={DELETE_COLORS}
+                                    onPress={() => setShowDeleteConfirm(true)}
+                                    disabled={deleting}
+                                />
+                            </View>
+                        )}
                     </View>
                 </ScrollView>
 
@@ -284,6 +406,32 @@ export default function ProfilePortfolioScreen() {
                         </View>
                     </View>
                 </Modal>
+                <AppAlert
+                    visible={showReportConfirm}
+                    character={require('@/assets/images/cuidado.png')}
+                    title="Deseja denunciar esse perfil?"
+                    subTitle={null}
+                    messages={null}
+                    buttonLabel="Sim, ele não segue as diretrizes do aplicativo"
+                    buttonTextStyle={styles.alertButtonText}
+                    buttonLoading={reportSaving}
+                    buttonLoadingLabel="Enviando..."
+                    onClose={handleConfirmReport}
+                    secondaryButtonLabel="Voltar"
+                    onSecondaryPress={() => setShowReportConfirm(false)}
+                />
+
+                <AppAlert
+                    visible={showDeleteConfirm}
+                    character={require('@/assets/images/cuidado.png')}
+                    title="Tem certeza que deseja excluir este perfil?"
+                    subTitle={null}
+                    messages={['O portfólio, as fotos e as curtidas serão apagados.', 'Esta ação não pode ser desfeita.']}
+                    buttonLabel="Cancelar"
+                    onClose={() => setShowDeleteConfirm(false)}
+                    secondaryButtonLabel={deleting ? 'Excluindo...' : 'Excluir perfil'}
+                    onSecondaryPress={handleConfirmDelete}
+                />
             </View>
         </SafeAreaView>
     );

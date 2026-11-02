@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, Modal, FlatList, AccessibilityInfo } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { styles } from './ChipMultiSelect.styles';
@@ -25,7 +25,24 @@ export default function ChipMultiSelect({
     normalizedOptions.find((o) => o.value === value)?.label ?? value;
   const limitReached = maxSelected !== undefined && draft.length >= maxSelected;
 
+  const [showLimitNotice, setShowLimitNotice] = useState(false);
+  const limitMessage = `Limite de ${maxSelected} profissões. Remova uma para adicionar outra.`;
+
+  const isAddDisabled = maxSelected !== undefined && selected.length >= maxSelected;
+
+  useEffect(() => {
+    if (!showLimitNotice) return;
+    const timeout = setTimeout(() => setShowLimitNotice(false), 3000);
+    return () => clearTimeout(timeout);
+  }, [showLimitNotice]);
+
   const openModal = () => {
+    if (isAddDisabled) {
+      setShowLimitNotice(true);
+      AccessibilityInfo.announceForAccessibility(limitMessage);
+      return;
+    }
+    setShowLimitNotice(false);
     setDraft(selected);
     setVisible(true);
   };
@@ -39,6 +56,7 @@ export default function ChipMultiSelect({
   };
 
   const removeChip = (item: string) => {
+    setShowLimitNotice(false);
     onChange(selected.filter((v) => v !== item));
   };
 
@@ -59,16 +77,21 @@ export default function ChipMultiSelect({
           </View>
         ))}
 
-        {(maxSelected === undefined || selected.length < maxSelected) && (
-          <TouchableOpacity
-            style={styles.addChip}
-            onPress={openModal}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.addChipText}>adicionar +</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={[styles.addChip, isAddDisabled && styles.addChipDisabled]}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isAddDisabled }}
+          accessibilityHint={isAddDisabled ? limitMessage : undefined}
+          onPress={openModal}
+          activeOpacity={0.7}
+          disabled={isAddDisabled}
+        >
+          <Text style={styles.addChipText}>adicionar +</Text>
+        </TouchableOpacity>
       </View>
+      {showLimitNotice && isAddDisabled && (
+        <Text style={styles.selectionHint}>{limitMessage}</Text>
+      )}
 
       <Modal
         visible={visible}
@@ -93,12 +116,13 @@ export default function ChipMultiSelect({
               keyExtractor={(item) => item.value}
               renderItem={({ item }) => {
                 const isChecked = draft.includes(item.value);
-                const disabled = !isChecked && limitReached;
+                const isDisabled = !isChecked && maxSelected !== undefined && draft.length >= maxSelected;
                 return (
                   <TouchableOpacity
-                    style={[styles.option, disabled && styles.optionDisabled]}
+                    style={[styles.option, isDisabled && styles.optionDisabled]}
+                    disabled={isDisabled}
+                    accessibilityState={{ checked: isChecked, disabled: isDisabled }}
                     onPress={() => toggleDraft(item.value)}
-                    disabled={disabled}
                   >
                     <Text style={styles.optionText}>{item.label}</Text>
                     <Ionicons

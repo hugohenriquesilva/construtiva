@@ -17,6 +17,7 @@ vi.mock('firebase/auth', () => {
 vi.mock('firebase/firestore', () => {
     return {
         doc: vi.fn((_db, collection, id) => ({ collection, id })),
+        getDoc: vi.fn().mockResolvedValue({ exists: () => true }),
         setDoc: vi.fn(),
     };
 });

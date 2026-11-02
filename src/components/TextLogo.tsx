@@ -1,10 +1,19 @@
+import type { ComponentType, ReactElement, ReactNode } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
 import {Text, StyleSheet} from "react-native"
 
+type MaskedViewProps = {
+  maskElement: ReactElement;
+  children?: ReactNode;
+};
+
+// Adapta a declaração legada do pacote ao tipo de componente React atual.
+const TypedMaskedView = MaskedView as unknown as ComponentType<MaskedViewProps>;
+
 export default function TextLogo(){
     return(
-    <MaskedView
+    <TypedMaskedView
       maskElement={
         <Text style={LoginStyles.title}>
           Construtiva
@@ -20,7 +29,7 @@ export default function TextLogo(){
           Construtiva
         </Text>
       </LinearGradient>
-    </MaskedView>
+    </TypedMaskedView>
     )
 }
 

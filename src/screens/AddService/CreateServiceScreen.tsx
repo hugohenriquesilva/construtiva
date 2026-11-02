@@ -25,21 +25,17 @@ import { useProfessions } from "../../hooks/useProfessions";
 import { formatProfessionName } from "../../utils/formatProfessionName";
 import { reviewServiceDescription } from "../../services/aiReviewService";
 import { createService } from "../../services/serviceService";
+import { ImageUploadError } from "../../utils/readImageFile";
+import {
+  traceServiceUpload,
+  traceServiceUploadFailure,
+} from "../../utils/serviceUploadTrace";
+import { SERVICE_AREAS } from "../../constants/serviceAreas";
 import { styles } from "./CreateServiceScreen.styles";
 
 const GRADIENT: [string, string] = [
   "rgba(91, 105, 163, 1)",
   "rgba(210, 110, 56, 1)",
-];
-
-const AREAS = [
-  "Elétrica",
-  "Hidráulica",
-  "Pintura",
-  "Reforma",
-  "Jardinagem",
-  "Marcenaria",
-  "Limpeza",
 ];
 
 const MAX_PHOTOS = 5;
@@ -89,6 +85,7 @@ export default function CreateServiceScreen() {
   const handleTabPress = (tab: BottomTabKey) => {
     if (tab === "home") navigation.navigate("Home");
     else if (tab === "professional") navigation.navigate("BuscaPortfolio");
+    else if (tab === "services") navigation.navigate("BuscaServicos");
     else if (tab === "menu") navigation.navigate("MaisInformacoes");
   };
 
@@ -138,28 +135,39 @@ export default function CreateServiceScreen() {
 
   // ---------- Publicar: valida → IA → Firestore ----------
   const handleSubmit = async () => {
-    if (submitting) return;
+    traceServiceUpload("handleSubmit", "started");
+    if (submitting) {
+      traceServiceUpload("handleSubmit", "completed", { skipped: "already-submitting" });
+      return;
+    }
 
     if (!title.trim() || !description.trim() || areas.length === 0) {
+      traceServiceUpload("handleSubmit", "completed", { skipped: "form-validation" });
       Alert.alert("Campos obrigatórios", "Preencha título, área e descrição.");
       return;
     }
     if (!professionId) {
+      traceServiceUpload("handleSubmit", "completed", { skipped: "profession-validation" });
       Alert.alert("Profissão", "Selecione a profissão desejada.");
       return;
     }
     if (cep.length !== 8 || location.includes("não")) {
+      traceServiceUpload("handleSubmit", "completed", { skipped: "cep-validation" });
       Alert.alert("CEP", "Informe um CEP válido.");
       return;
     }
 
     setSubmitting(true);
+    let currentStage = "reviewServiceDescription";
     try {
       // 1) IA analisa a descrição
+      traceServiceUpload(currentStage, "started");
       setStep("Analisando sua descrição...");
       const review = await reviewServiceDescription(title, description);
+      traceServiceUpload(currentStage, "completed", { verdict: review.verdict });
 
       if (review.verdict === "rejected") {
+        traceServiceUpload("handleSubmit", "completed", { skipped: "description-rejected" });
         Alert.alert("Não foi possível publicar", review.reason);
         return; // o finally abaixo ainda roda
       }
@@ -173,6 +181,8 @@ export default function CreateServiceScreen() {
       }
 
       // 3) salva no Firebase
+      currentStage = "createService";
+      traceServiceUpload(currentStage, "started", { photoCount: photos.length });
       setStep("Publicando seu serviço...");
       await createService({
         title,
@@ -185,6 +195,8 @@ export default function CreateServiceScreen() {
         photos,
         aiReview: { verdict: review.verdict, originalDescription },
       });
+      traceServiceUpload(currentStage, "completed");
+      traceServiceUpload("handleSubmit", "completed");
 
       Alert.alert(
           "Serviço publicado!",
@@ -194,10 +206,12 @@ export default function CreateServiceScreen() {
       );
       navigation.goBack();
     } catch (error) {
-      console.error("Erro ao publicar serviço:", error);
+      traceServiceUploadFailure(currentStage, error);
       Alert.alert(
           "Erro",
-          "Não foi possível publicar agora. Verifique sua conexão e tente novamente.",
+          error instanceof ImageUploadError
+            ? error.message
+            : "Não foi possível publicar agora. Verifique sua conexão e tente novamente.",
       );
     } finally {
       setSubmitting(false);
@@ -257,7 +271,7 @@ export default function CreateServiceScreen() {
             <Section icon="pricetags-outline" title="Classificação">
               <Text style={styles.label}>Área de atuação</Text>
               <View style={styles.chipsRow}>
-                {AREAS.map((area) => {
+                {SERVICE_AREAS.map((area) => {
                   const selected = areas.includes(area);
                   return (
                       <Pressable

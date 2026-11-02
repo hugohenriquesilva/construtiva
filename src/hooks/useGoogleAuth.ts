@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -11,10 +12,11 @@ interface UseGoogleAuthOptions {
   onError: (error: unknown) => void;
 }
 
-export function useGoogleAuth({ onError }: UseGoogleAuthOptions) {
+function useConfiguredGoogleAuth({ onError }: UseGoogleAuthOptions) {
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
   });
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export function useGoogleAuth({ onError }: UseGoogleAuthOptions) {
     }
 
     loginWithGoogleIdToken(idToken).catch(onError);
-  }, [response]);
+  }, [response, onError]);
 
   const signIn = async () => {
     try {
@@ -47,3 +49,37 @@ export function useGoogleAuth({ onError }: UseGoogleAuthOptions) {
     ready: Platform.OS === 'web' || !!request,
   };
 }
+
+// A configuração é fixa durante a execução; não inicializa OAuth sem credenciais.
+const nativeClientId = Platform.select({
+  android: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+  ios: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+});
+
+function useUnavailableGoogleAuth({ onError }: UseGoogleAuthOptions) {
+  return {
+    ready: false,
+    signIn: async () => {
+      onError(new Error('Login com Google requer uma development build e o Client ID da plataforma.'));
+    },
+  };
+}
+
+function useWebGoogleAuth({ onError }: UseGoogleAuthOptions) {
+  return {
+    ready: true,
+    signIn: async () => {
+      try {
+        await loginWithGoogle();
+      } catch (error) {
+        onError(error);
+      }
+    },
+  };
+}
+
+export const useGoogleAuth = Platform.OS === 'web'
+  ? useWebGoogleAuth
+  : Constants.appOwnership !== 'expo' && nativeClientId
+    ? useConfiguredGoogleAuth
+    : useUnavailableGoogleAuth;

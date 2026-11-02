@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, StatusBar, Text, View } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { Pressable, ScrollView, StatusBar, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -35,6 +36,8 @@ export default function AddOptionsScreen() {
       navigation.navigate("Home");
     } else if (tab === "professional") {
       navigation.navigate("BuscaPortfolio");
+    } else if (tab === "services") {
+      navigation.navigate("BuscaServicos");
     } else if (tab === "menu") {
       navigation.navigate("MaisInformacoes");
     }
@@ -44,31 +47,46 @@ export default function AddOptionsScreen() {
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.screen}>
+        <View style={styles.titleHeader}>
+          <Text style={styles.title}>Adicionar</Text>
+        </View>
         <ScrollView
+          style={styles.optionsScroll}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.title}>Adicionar</Text>
-
+          <View style={styles.topSpace} />
           <View style={styles.optionList}>
-            <Pressable
-              style={styles.optionButton}
-              onPress={() =>
-                navigation.navigate(
-                  portfolioActive ? "PortfolioProfissional" : "FormularioProfissional",
-                )
-              }
-            >
-              <Text style={styles.optionLabel}>Meu portfólio</Text>
-              <Text
-                style={[
-                  styles.badge,
-                  portfolioActive ? styles.activeBadge : styles.inactiveBadge,
-                ]}
+            <View style={styles.portfolioRow}>
+              <Pressable
+                style={[styles.optionButton, styles.portfolioOption]}
+                onPress={() =>
+                  navigation.navigate(
+                    portfolioActive ? "PortfolioProfissional" : "FormularioProfissional",
+                  )
+                }
               >
-                {portfolioActive ? "Ativo" : "Inativo"}
-              </Text>
-            </Pressable>
+                <Text style={styles.optionLabel}>Meu portfólio</Text>
+                <Text
+                  style={[
+                    styles.badge,
+                    portfolioActive ? styles.activeBadge : styles.inactiveBadge,
+                  ]}
+                >
+                  {portfolioActive ? "Ativo" : "Inativo"}
+                </Text>
+              </Pressable>
+
+              {portfolioActive && (
+                <Pressable
+                  accessibilityLabel="Editar meu portfólio"
+                  style={styles.editButton}
+                  onPress={() => navigation.navigate("FormularioProfissional")}
+                >
+                  <Feather name="edit-2" size={20} color="#FFFFFF" />
+                </Pressable>
+              )}
+            </View>
 
             <Pressable
               style={styles.optionButton}
@@ -76,7 +94,15 @@ export default function AddOptionsScreen() {
             >
               <Text style={styles.optionLabel}>Cadastrar serviço</Text>
             </Pressable>
+
+            <Pressable
+              style={styles.optionButton}
+              onPress={() => navigation.navigate("MeusServicos")}
+            >
+              <Text style={styles.optionLabel}>Meus serviços</Text>
+            </Pressable>
           </View>
+          <View style={styles.bottomSpace} />
         </ScrollView>
 
         <BottomNavBar activeTab="add" onTabPress={handleTabPress} />

@@ -1,0 +1,56 @@
+import { StyleSheet } from "react-native";
+
+export const styles = StyleSheet.create({
+  container: {
+    alignItems: "center",
+    flexGrow: 1,
+    justifyContent: "center",
+    overflow: "hidden",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backgroundImage: { opacity: 0.22 },
+  mascot: { marginBottom: 12 },
+  title: {
+    color: "#1A1A1A",
+    fontFamily: "Poppins-Bold",
+    fontSize: 16,
+    fontWeight: "700",
+    maxWidth: 320,
+    textAlign: "center",
+  },
+  description: {
+    color: "#666666",
+    fontFamily: "Poppins-Regular",
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 8,
+    maxWidth: 320,
+    textAlign: "center",
+  },
+  primaryAction: {
+    alignItems: "center",
+    backgroundColor: "#5B69A3",
+    borderRadius: 20,
+    marginTop: 24,
+    minHeight: 48,
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 13,
+  },
+  primaryActionText: {
+    color: "#FFFFFF",
+    fontFamily: "Poppins-Bold",
+    fontSize: 15,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  linkAction: { marginTop: 12, minHeight: 40, justifyContent: "center", paddingHorizontal: 8 },
+  linkActionText: {
+    color: "#5B69A3",
+    fontFamily: "Poppins-Bold",
+    fontSize: 14,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+});
