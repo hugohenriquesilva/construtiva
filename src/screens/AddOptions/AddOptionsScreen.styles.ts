@@ -3,11 +3,13 @@ import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
   screen: { flex: 1, backgroundColor: "#FFFFFF" },
+  titleHeader: { paddingHorizontal: 28, paddingTop: 34 },
+  optionsScroll: { flex: 1 },
   content: {
     flexGrow: 1,
     paddingHorizontal: 28,
-    paddingTop: 34,
-    paddingBottom: 96,
+    paddingTop: 12,
+    paddingBottom: 28,
   },
   title: {
     color: "#0B0B0B",
@@ -17,7 +19,9 @@ export const styles = StyleSheet.create({
     letterSpacing: -0.4,
     marginBottom: 34,
   },
-  optionList: { gap: 22 },
+  topSpace: { flex: 0.4, minHeight: 0 },
+  optionList: { gap: 28 },
+  bottomSpace: { flex: 1.6, minHeight: 0 },
   optionButton: {
     alignItems: "center",
     borderColor: "#8D8D8D",

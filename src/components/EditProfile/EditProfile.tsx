@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import type { TextInputInstance } from 'react-native';
 import { doc, setDoc, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -27,39 +28,34 @@ interface EditProfileProps {
 }
 
 export default function EditProfile({ visible, uid, currentName, currentPhotoUri, focusCep, onClose, onSaved }: EditProfileProps) {
-  const [name, setName] = useState('');
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [nameDraft, setNameDraft] = useState<{ value: string; source: string } | null>(null);
+  const [photoDraft, setPhotoDraft] = useState<{
+    value: string | null;
+    source: string | null;
+  } | null>(null);
+  const name = nameDraft?.source === currentName ? nameDraft.value : currentName;
+  const photoSource = currentPhotoUri ?? null;
+  const photoUri = photoDraft?.source === photoSource ? photoDraft.value : photoSource;
   const [cep, setCep] = useState('');
   const [addressPreview, setAddressPreview] = useState<CepAddress | null>(null);
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [geohash, setGeohash] = useState<string | null>(null);
   const [cepLoading, setCepLoading] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
-  const cepInputRef = useRef<TextInput>(null);
+  const cepInputRef = useRef<TextInputInstance>(null);
   const cepEditedRef = useRef(false);
   const cepRequestRef = useRef(0);
   const savingProfileRef = useRef(false);
 
-  // Sincroniza nome e foto exibidos sem mexer no que já foi digitado no CEP,
-  // já que currentName/currentPhotoUri podem chegar tarde (carregam em paralelo no ecrã pai).
-  useEffect(() => {
-    if (visible) {
-      setName(currentName);
-      setPhotoUri(currentPhotoUri ?? null);
-    }
-  }, [visible, currentName, currentPhotoUri]);
+  const updatePhotoUri = (value: string | null) => {
+    setPhotoDraft({ value, source: photoSource });
+  };
 
   useEffect(() => {
     if (!visible) return;
 
     let active = true;
     ++cepRequestRef.current;
-    cepEditedRef.current = false;
-    setCepLoading(false);
-    setAddressPreview(null);
-    setCoords(null);
-    setGeohash(null);
-    setCep('');
 
     const loadExistingLocation = async () => {
       if (!uid) return;
@@ -107,7 +103,7 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
       });
 
       if (!result.canceled) {
-        setPhotoUri(result.assets[0].uri);
+        updatePhotoUri(result.assets[0].uri);
       }
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível abrir a câmera.');
@@ -130,7 +126,7 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
       });
 
       if (!result.canceled) {
-        setPhotoUri(result.assets[0].uri);
+        updatePhotoUri(result.assets[0].uri);
       }
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível abrir a galeria.');
@@ -257,6 +253,15 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
       animationType="slide"
       onRequestClose={onClose}
       onShow={() => {
+        setNameDraft({ value: currentName, source: currentName });
+        setPhotoDraft({ value: photoSource, source: photoSource });
+        ++cepRequestRef.current;
+        cepEditedRef.current = false;
+        setCepLoading(false);
+        setAddressPreview(null);
+        setCoords(null);
+        setGeohash(null);
+        setCep('');
         if (focusCep) cepInputRef.current?.focus();
       }}
     >
@@ -281,7 +286,7 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
               placeholder="Seu nome"
               placeholderTextColor="#9B9B9B"
               value={name}
-              onChangeText={setName}
+              onChangeText={(value) => setNameDraft({ value, source: currentName })}
             />
 
             <Text style={styles.label}>CEP da residência</Text>

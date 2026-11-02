@@ -36,6 +36,7 @@ export const styles = StyleSheet.create({
     padding: 0,
   },
   listContent: {
+    flexGrow: 1,
     paddingHorizontal: 20,
     paddingBottom: 24,
   },
@@ -135,10 +136,12 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
   },
   emptyMessage: {
-    color: "#9C9C9C",
+    color: "#666666",
+    fontFamily: "Poppins-Regular",
     fontSize: 13,
-    fontWeight: "600",
+    lineHeight: 19,
     marginTop: 24,
+    maxWidth: 320,
     textAlign: "center",
   },
 });

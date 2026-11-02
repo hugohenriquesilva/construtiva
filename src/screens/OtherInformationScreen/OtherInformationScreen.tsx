@@ -88,6 +88,8 @@ export default function OtherInformationScreen() {
       navigation.navigate("Home");
     } else if (tab === "professional") {
       navigation.navigate("BuscaPortfolio");
+    } else if (tab === "services") {
+      navigation.navigate("BuscaServicos");
     } else if (tab === "menu") {
       // já está na tela de menu, não faz nada
     }

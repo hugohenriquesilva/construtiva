@@ -10,5 +10,8 @@ export type RootStackParamList = {
   Adicionar: undefined;
   EdicaoProfissoes: undefined;
   CadastrarServico: undefined;
+  MeusServicos: undefined;
+  BuscaServicos: undefined;
+  DetalhesServico: { serviceId: string };
   Denuncias: undefined;
 };

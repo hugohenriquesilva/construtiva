@@ -28,6 +28,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { MAX_SECONDARY_PROFESSIONS, ProfessionalFormData } from '../../../types/professionalForm';
 import { useProfessions } from '../../hooks/useProfessions';
 import { formatProfessionName } from '../../utils/formatProfessionName';
+import { ImageUploadError } from '../../utils/readImageFile';
 import { savePortfolio, getPortfolio } from '../../services/portfolioService';
 import { fetchAddressByCep } from '../../services/cepService';
 import { geocodeAddress, saveUserLocation, Coordinates } from '../../services/locationService';
@@ -243,7 +244,12 @@ export default function ProfessionalFormScreen() {
 
       setSuccessModalType(portfolioExistedBeforeSave ? 'updated' : form.isActive ? 'active' : 'inactive');
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível salvar o portfólio. Tente novamente.');
+      Alert.alert(
+        'Erro',
+        error instanceof ImageUploadError
+          ? error.message
+          : 'Não foi possível salvar o portfólio. Tente novamente.',
+      );
       console.error(error);
     } finally {
       setLoading(false);

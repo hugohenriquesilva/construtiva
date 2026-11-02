@@ -1,8 +1,8 @@
 import { Feather } from "@expo/vector-icons";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { doc, getDoc } from "firebase/firestore";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -29,6 +29,8 @@ import {
 } from "@/src/services/searchService";
 import { BottomTabKey } from "../../../types/home";
 import { RootStackParamList } from "../../../types/navigation";
+import EmptyStateMessage from "@/src/components/EmptyStateMessage/EmptyStateMessage";
+import { getProfessionalSearchFeedback } from "@/src/utils/professionalSearchFeedback";
 import BottomNavBar from "../../components/BottomNavBar/BottomNavBar";
 import { styles } from "./BuscaPortfolioScreen.styles";
 
@@ -54,49 +56,50 @@ export default function BuscaPortfolioScreen() {
     () => (selectedProfession ? [] : matchProfessions(searchQuery, professions)),
     [searchQuery, professions, selectedProfession],
   );
-
+  const showInitialEmptyState =
+    searchQuery.length === 0 &&
+    !selectedProfession &&
+    !searching &&
+    !professionsLoading &&
+    !professionsError &&
+    results.length === 0 &&
+    suggestions.length === 0;
   // Se o cliente ainda não cadastrou o CEP, avisa e leva para o cadastro.
   // Aproveita para carregar o geohash do cliente, usado na busca.
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      setUserGeohash(null);
-      setResults([]);
-      const checkLocation = async () => {
-        const uid = auth.currentUser?.uid;
-        if (!uid) return;
+  useEffect(() => {
+    let active = true;
+    const checkLocation = async () => {
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
 
-        const userSnap = await getDoc(doc(db, "users", uid));
+      const userSnap = await getDoc(doc(db, "users", uid));
+      if (!active) return;
+      if (userSnap.exists() && userSnap.data().location === true) {
+        const clientLocation = await getClientLocation(uid);
         if (!active) return;
-        if (userSnap.exists() && userSnap.data().location === true) {
-          const clientLocation = await getClientLocation(uid);
-          if (!active) return;
-          setUserGeohash(clientLocation?.geohash ?? null);
-          return;
-        }
+        setUserGeohash(clientLocation?.geohash ?? null);
+        return;
+      }
 
-        Alert.alert(
-          "CEP não cadastrado",
-          "Adicione o CEP de onde deseja encontrar um profissional",
-          [
-            {
-              text: "OK",
-              onPress: () =>
-                navigation.navigate("MaisInformacoes", { focusCep: true }),
-            },
-          ],
-          { cancelable: false },
-        );
-      };
+      Alert.alert(
+        "CEP não cadastrado",
+        "Adicione o CEP de onde deseja encontrar um profissional",
+        [
+          {
+            text: "OK",
+            onPress: () =>
+              navigation.navigate("MaisInformacoes", { focusCep: true }),
+          },
+        ],
+        { cancelable: false },
+      );
+    };
 
-      checkLocation();
-      return () => {
-        active = false;
-        setUserGeohash(null);
-        setResults([]);
-      };
-    }, [navigation]),
-  );
+    void checkLocation();
+    return () => {
+      active = false;
+    };
+  }, [navigation]);
 
   const resetSearch = () => {
     searchRequestId.current += 1;
@@ -152,6 +155,8 @@ export default function BuscaPortfolioScreen() {
       navigation.navigate("Home");
     } else if (tab === "professional") {
       // já está na tela de busca, não faz nada
+    } else if (tab === "services") {
+      navigation.navigate("BuscaServicos");
     } else if (tab === "menu") {
       navigation.navigate("MaisInformacoes");
     }
@@ -270,11 +275,20 @@ export default function BuscaPortfolioScreen() {
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
-            ListEmptyComponent={
-              emptyMessage ? (
-                <Text style={styles.emptyMessage}>{emptyMessage}</Text>
-              ) : null
-            }
+            ListEmptyComponent={searching ? undefined : (() => {
+              const feedback = getProfessionalSearchFeedback(emptyMessage);
+              if (feedback.kind === "message") {
+                return <Text style={styles.emptyMessage}>{feedback.message}</Text>;
+              }
+              return (
+                <EmptyStateMessage
+                  title={feedback.title}
+                  description={feedback.description}
+                  mascotSource={require("../../../assets/images/chateado.png")}
+                  mascotAspectRatio={1102 / 960}
+                />
+              );
+            })()}
           />
         ) : (
           <FlatList
@@ -285,13 +299,17 @@ export default function BuscaPortfolioScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
-            ListEmptyComponent={
-              suggestionsEmptyMessage() ? (
-                <Text style={styles.emptyMessage}>
-                  {suggestionsEmptyMessage()}
-                </Text>
-              ) : null
-            }
+            ListEmptyComponent={showInitialEmptyState ? (
+              <EmptyStateMessage
+                title="Encontre o profissional ideal!"
+                description="Pesquise pelo tipo de profissional que você precisa."
+                mascotSource={require("../../../assets/images/deuCertoSemFala.png")}
+              />
+            ) : suggestionsEmptyMessage() ? (
+              <Text style={styles.emptyMessage}>
+                {suggestionsEmptyMessage()}
+              </Text>
+            ) : undefined}
           />
         )}
       </View>

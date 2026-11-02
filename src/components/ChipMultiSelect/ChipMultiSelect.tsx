@@ -32,13 +32,9 @@ export default function ChipMultiSelect({
 
   useEffect(() => {
     if (!showLimitNotice) return;
-    if (!isAddDisabled) {
-      setShowLimitNotice(false);
-      return;
-    }
     const timeout = setTimeout(() => setShowLimitNotice(false), 3000);
     return () => clearTimeout(timeout);
-  }, [showLimitNotice, isAddDisabled]);
+  }, [showLimitNotice]);
 
   const openModal = () => {
     if (isAddDisabled) {

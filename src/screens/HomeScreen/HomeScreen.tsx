@@ -150,6 +150,8 @@ export default function HomeScreen() {
             feedListRef.current?.scrollToOffset({ offset: 0, animated: true });
         } else if (tab === 'professional') {
             navigation.navigate('BuscaPortfolio');
+        } else if (tab === 'services') {
+            navigation.navigate('BuscaServicos');
         }
         else if (tab === 'menu') {
             navigation.navigate('MaisInformacoes');

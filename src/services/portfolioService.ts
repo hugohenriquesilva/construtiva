@@ -13,13 +13,11 @@ import {
 } from 'firebase/firestore';
 import {
     ref,
-    uploadBytes,
-    getDownloadURL,
     deleteObject,
     listAll,
 } from 'firebase/storage';
-import { db, storage, auth } from '@/firebaseConfig';
-import { uriToBlob } from '@/src/utils/UriToBlob';
+import { db, storage, auth } from '../../firebaseConfig';
+import { uploadServiceImageToStorage } from './imageStorageService';
 import { CompleteProfessional, Professional } from '../../types/home';
 import { ProfessionalFormData } from '../../types/professionalForm';
 import { UserRole } from '../../types/user';
@@ -59,7 +57,10 @@ export async function savePortfolio(formData: ProfessionalFormData): Promise<voi
         // Upload da foto de perfil se existir e for local (ainda não é uma URL remota)
         let photoUrl: string | null = formData.photoUri;
         if (formData.photoUri && !formData.photoUri.startsWith('http')) {
-            photoUrl = await uploadImage(uid, formData.photoUri, 'avatar');
+            photoUrl = await uploadServiceImageToStorage(
+                formData.photoUri,
+                `portfolios/${uid}/avatar`,
+            );
         }
 
         // Upload das fotos de serviço se existirem
@@ -67,7 +68,10 @@ export async function savePortfolio(formData: ProfessionalFormData): Promise<voi
             formData.servicePhotos.map(async (uri, index) => {
                 if (!uri) return null;
                 if (!uri.startsWith('http')) {
-                    return await uploadImage(uid, uri, `service_${index}`);
+                    return await uploadServiceImageToStorage(
+                        uri,
+                        `portfolios/${uid}/service_${index}`,
+                    );
                 }
                 return uri; // já é URL
             })
@@ -144,31 +148,6 @@ export async function hasPortfolio(uid?: string): Promise<boolean> {
 }
 
 // Upload de imagem para Storage
-async function uploadImage(
-    uid: string,
-    imagePath: string,
-    type: string // 'avatar' ou 'service_0', 'service_1', etc
-): Promise<string> {
-    try {
-        // Converter URI para blob
-        const blob = await uriToBlob(imagePath);
-
-        // Referência no Storage
-        const ext = imagePath.split('.').pop() || 'jpg';
-        const storageRef = ref(storage, `portfolios/${uid}/${type}.${ext}`);
-
-        // Upload
-        const snapshot = await uploadBytes(storageRef, blob, { contentType: blob.type || 'image/jpeg' });
-
-        // Retornar URL downloadável
-        const url = await getDownloadURL(snapshot.ref);
-        return url;
-    } catch (error) {
-        console.error(`Erro ao fazer upload de ${type}:`, error);
-        throw error;
-    }
-}
-
 // Verificar se o usuário logado já curtiu o portfólio
 export async function isPortfolioLikedByUser(portfolioUid: string, userUid: string): Promise<boolean> {
     const likeRef = doc(db, 'portfolios', portfolioUid, 'likes', userUid);

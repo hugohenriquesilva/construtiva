@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 
@@ -24,13 +24,11 @@ export default function ChangePassword({ visible, onClose }: ChangePasswordProps
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (visible) {
+  function resetFields() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    }
-  }, [visible]);
+  }
 
   const canSave =
     currentPassword.length > 0 &&
@@ -62,7 +60,13 @@ export default function ChangePassword({ visible, onClose }: ChangePasswordProps
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      onShow={resetFields}
+    >
       <View style={styles.overlay}>
         <View style={styles.container}>
           <ScrollView showsVerticalScrollIndicator={false}>

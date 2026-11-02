@@ -120,7 +120,7 @@ export default function ProfilePortfolioScreen() {
     }));
 
     const closePreview = () => {
-        scale.value = withTiming(1);
+        scale.set(withTiming(1));
         savedScale.value = 1;
         setSelectedWork(null);
     };
@@ -219,6 +219,8 @@ export default function ProfilePortfolioScreen() {
             navigation.navigate('Home');
         } else if (tab === 'professional') {
             navigation.navigate('BuscaPortfolio');
+        } else if (tab === 'services') {
+            navigation.navigate('BuscaServicos');
         } else if (tab === 'menu') {
             navigation.navigate('MaisInformacoes');
         }
