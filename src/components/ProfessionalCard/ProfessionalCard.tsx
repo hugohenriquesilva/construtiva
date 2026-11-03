@@ -15,7 +15,13 @@ export default function ProfessionalCard({
   onPress,
 }: ProfessionalCardProps) {
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      accessibilityRole="button"
+      accessibilityLabel={`Ver perfil de ${professional.name}`}
+      onPress={() => onPress?.(professional)}
+      activeOpacity={0.7}
+    >
       {professional.avatarUrl ? (
         <Image source={{ uri: professional.avatarUrl }} style={styles.avatar} />
       ) : (
@@ -48,15 +54,8 @@ export default function ProfessionalCard({
           <Text style={styles.city}> {professional.likesCount ?? 0} curtidas</Text>
         </View>
 
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={`Ver perfil de ${professional.name}`}
-          onPress={() => onPress?.(professional)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.ctaText}>Ver agora</Text>
-        </TouchableOpacity>
+        <Text style={styles.ctaText}>Ver agora</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }

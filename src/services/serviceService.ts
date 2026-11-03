@@ -11,9 +11,14 @@ import {
     serverTimestamp,
     Timestamp,
     where,
+    writeBatch,
 } from "firebase/firestore";
-import { auth, db } from "../../firebaseConfig";
+import { deleteObject, ref } from "firebase/storage";
+import { auth, db, storage } from "../../firebaseConfig";
 import { uploadServiceImageToStorage } from "./imageStorageService";
+import { fetchAddressByCep } from "./cepService";
+import { Coordinates, geocodeAddress } from "./locationService";
+import { hasValidCoordinates } from "../utils/proximity";
 import {
     traceServiceUpload,
     traceServiceUploadFailure,
@@ -45,6 +50,9 @@ export type ServiceDocument = {
     photos: string[];
     status: string;
     createdAt: ServiceDate;
+    coordinates?: Coordinates | null;
+    ownerName?: string;
+    ownerPhotoUri?: string | null;
 };
 
 function parseServiceDate(value: unknown): ServiceDate {
@@ -70,7 +78,66 @@ function toServiceDocument(id: string, data: DocumentData): ServiceDocument {
             : [],
         status: typeof data.status === "string" ? data.status : "",
         createdAt: parseServiceDate(data.createdAt),
+        coordinates: hasValidCoordinates(data)
+            ? { latitude: data.latitude, longitude: data.longitude }
+            : null,
+        ownerName: typeof data.ownerName === "string" ? data.ownerName : "",
+        ownerPhotoUri: typeof data.ownerPhotoUri === "string" ? data.ownerPhotoUri : null,
     };
+}
+
+
+// Nome e foto do perfil do cliente ("Editar perfil"), exibidos em "Cliente solicitante".
+// Só esses dois campos vão para o serviço: users/{uid} tem dados pessoais e não é público.
+async function getOwnerPublicInfo(uid: string): Promise<{ ownerName: string; ownerPhotoUri: string | null }> {
+    try {
+        const snapshot = await getDoc(doc(db, "users", uid));
+        const data = snapshot.data() ?? {};
+        return {
+            ownerName: typeof data.fullName === "string" ? data.fullName.trim() : "",
+            ownerPhotoUri: typeof data.photoUri === "string" ? data.photoUri : null,
+        };
+    } catch (error) {
+        console.error("Erro ao ler o perfil do cliente:", error);
+        return { ownerName: "", ownerPhotoUri: null };
+    }
+}
+
+export async function syncServiceOwnerInfo(
+    ownerUid: string,
+    ownerName: string,
+    ownerPhotoUri: string | null,
+): Promise<void> {
+    const snapshot = await getDocs(query(
+        collection(db, "services"),
+        where("ownerUid", "==", ownerUid),
+    ));
+    if (snapshot.empty) return;
+
+    // Um lote aceita até 500 operações
+    for (let i = 0; i < snapshot.docs.length; i += 450) {
+        const batch = writeBatch(db);
+        snapshot.docs.slice(i, i + 450).forEach((service) =>
+            batch.update(service.ref, { ownerName: ownerName.trim(), ownerPhotoUri }));
+        await batch.commit();
+    }
+}
+
+async function geocodeServiceCep(cep: string): Promise<Coordinates | null> {
+    try {
+        const address = await fetchAddressByCep(cep);
+        if (!address) return null;
+
+        return await geocodeAddress({
+            street: address.street,
+            neighborhood: address.neighborhood,
+            city: address.city,
+            zipCode: cep,
+        });
+    } catch (error) {
+        console.error("Erro ao localizar o CEP do serviço:", error);
+        return null;
+    }
 }
 
 function serviceDateMillis(value: ServiceDate): number {
@@ -141,6 +208,44 @@ export async function closeService(serviceId: string): Promise<void> {
     });
 }
 
+// Excluir um serviço denunciado (somente admin, garantido pelas regras do Firestore).
+// Remove os lances e o serviço juntos e depois as fotos no Storage.
+// As denúncias em "denunciasServicos" são mantidas como histórico.
+export async function deleteServiceAsAdmin(serviceId: string): Promise<void> {
+    const serviceRef = doc(db, "services", serviceId);
+    const [serviceSnap, proposalsSnap] = await Promise.all([
+        getDoc(serviceRef),
+        getDocs(collection(db, "services", serviceId, "proposals")),
+    ]);
+    if (!serviceSnap.exists()) return;
+
+    const photos = toServiceDocument(serviceSnap.id, serviceSnap.data()).photos;
+    const proposalRefs = proposalsSnap.docs.map((proposal) => proposal.ref);
+
+    // Um lote aceita até 500 operações: os lances que não couberem vão em lotes anteriores
+    while (proposalRefs.length > 498) {
+        const proposalsBatch = writeBatch(db);
+        proposalRefs.splice(0, 450).forEach((proposalRef) => proposalsBatch.delete(proposalRef));
+        await proposalsBatch.commit();
+    }
+
+    const batch = writeBatch(db);
+    proposalRefs.forEach((proposalRef) => batch.delete(proposalRef));
+    batch.delete(serviceRef);
+    await batch.commit();
+
+    // Limpeza complementar: falhas aqui não desfazem a exclusão do serviço
+    const results = await Promise.allSettled(
+        photos.map((photoUrl) => deleteObject(ref(storage, photoUrl))),
+    );
+    results.forEach((result) => {
+        if (result.status === "rejected") {
+            console.error("Erro ao excluir foto do serviço:", result.reason);
+        }
+    });
+}
+
+
 export async function createService(input: ServiceInput): Promise<string> {
     traceServiceUpload("createService", "started", {
         photoCount: input.photos.length,
@@ -155,6 +260,10 @@ export async function createService(input: ServiceInput): Promise<string> {
     traceServiceUpload("service-photos", "started", {
         photoCount: input.photos.length,
     });
+
+    const coordinatesPromise = geocodeServiceCep(input.cep);
+    const ownerInfoPromise = getOwnerPublicInfo(uid);
+
     let photoUrls: string[];
     try {
         photoUrls = await Promise.all(
@@ -169,6 +278,9 @@ export async function createService(input: ServiceInput): Promise<string> {
     traceServiceUpload("service-photos", "completed", {
         photoCount: photoUrls.length,
     });
+
+    const [coordinates, ownerInfo] = await Promise.all([coordinatesPromise, ownerInfoPromise]);
+
 
     traceServiceUpload("firestore-addDoc", "started", {
         photoCount: photoUrls.length,
@@ -186,6 +298,8 @@ export async function createService(input: ServiceInput): Promise<string> {
             photos: photoUrls,
             status: "open",
             aiReview: input.aiReview,
+            ...(coordinates ?? {}),
+            ...ownerInfo,
             createdAt: serverTimestamp(),
         });
 

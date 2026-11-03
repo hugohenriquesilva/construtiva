@@ -13,6 +13,8 @@
 //   node admin.js migrate [--dry-run] migra usuários (role) e portfólios (ids de profissão, remove "area")
 //   node admin.js merge <ORIGEM> <DESTINO> [--dry-run]
 //                                     troca ORIGEM por DESTINO em todos os portfólios e exclui ORIGEM
+//   node admin.js geocode-services [--dry-run]
+//                                     grava latitude/longitude nos serviços que ainda não têm
 
 const path = require('path');
 const { initializeApp, cert } = require('firebase-admin/app');
@@ -222,6 +224,82 @@ async function mergeProfessions(fromName, toName, dryRun) {
   console.log(`Profissão ${normalizeProfessionName(fromName)} ${dryRun ? 'seria excluída' : 'excluída'}.\n`);
 }
 
+// Mesma geocodificação de src/services/serviceService.ts (viaCEP + Nominatim)
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function searchNominatim(fields) {
+  const params = new URLSearchParams({
+    format: 'json',
+    limit: '1',
+    countrycodes: 'br',
+    country: 'Brasil',
+    ...fields,
+  });
+  // A política de uso do Nominatim permite no máximo 1 requisição por segundo
+  await sleep(1100);
+  const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+    headers: { 'User-Agent': 'ConstrutivaApp/1.0 (scripts/admin.js)' },
+  });
+  if (!response.ok) throw new Error(`Nominatim respondeu ${response.status}`);
+
+  const data = await response.json();
+  if (!Array.isArray(data) || data.length === 0) return null;
+
+  const latitude = parseFloat(data[0].lat);
+  const longitude = parseFloat(data[0].lon);
+  return Number.isFinite(latitude) && Number.isFinite(longitude) ? { latitude, longitude } : null;
+}
+
+async function geocodeCep(cep) {
+  const digits = String(cep ?? '').replace(/\D/g, '');
+  if (digits.length !== 8) return null;
+
+  const response = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+  const address = await response.json();
+  if (address.erro) return null;
+
+  const city = address.localidade || '';
+  if (address.logradouro && city) {
+    const result = await searchNominatim({ street: address.logradouro, city });
+    if (result) return result;
+  }
+  return searchNominatim({ postalcode: `${digits.slice(0, 5)}-${digits.slice(5)}` });
+}
+
+function hasCoordinates(data) {
+  return Number.isFinite(data.latitude) && Math.abs(data.latitude) <= 90
+    && Number.isFinite(data.longitude) && Math.abs(data.longitude) <= 180;
+}
+
+// Serviços publicados antes de a busca por distância existir não têm coordenadas
+async function geocodeServices(dryRun) {
+  const snap = await db.collection('services').get();
+  const pending = snap.docs.filter((d) => !hasCoordinates(d.data()));
+  console.log(`${snap.size} serviço(s); ${pending.length} sem coordenadas.`);
+
+  let updated = 0;
+  const failed = [];
+  for (const serviceDoc of pending) {
+    const { cep, title } = serviceDoc.data();
+    try {
+      const coordinates = await geocodeCep(cep);
+      if (!coordinates) {
+        failed.push(`${serviceDoc.id} (CEP ${cep ?? 'ausente'}): endereço não localizado`);
+        continue;
+      }
+      if (!dryRun) await serviceDoc.ref.update(coordinates);
+      updated += 1;
+      console.log(`  ${dryRun ? 'seria atualizado' : 'atualizado'}: ${serviceDoc.id} "${title ?? ''}" -> ${coordinates.latitude}, ${coordinates.longitude}`);
+    } catch (error) {
+      failed.push(`${serviceDoc.id} (CEP ${cep ?? 'ausente'}): ${error.message}`);
+    }
+  }
+
+  console.log(`${dryRun ? 'Seriam atualizados' : 'Atualizados'}: ${updated}. Sem localização: ${failed.length}.`);
+  failed.forEach((line) => console.log(`  ! ${line}`));
+}
+
+
 async function main() {
   const [command, ...args] = process.argv.slice(2);
 
@@ -232,9 +310,9 @@ async function main() {
     const [fromName, toName] = args.filter((a) => a !== '--dry-run');
     return mergeProfessions(fromName, toName, args.includes('--dry-run'));
   }
+  if (command === 'geocode-services') return geocodeServices(args.includes('--dry-run'));
 
-  console.log('Comandos: set-admin <uid> | seed | migrate [--dry-run] | merge <ORIGEM> <DESTINO> [--dry-run]');
-  process.exitCode = 1;
+  console.log('Comandos: set-admin <uid> | seed | migrate [--dry-run] | merge <ORIGEM> <DESTINO> [--dry-run] | geocode-services [--dry-run]');
 }
 
 main().catch((error) => {

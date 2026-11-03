@@ -20,9 +20,11 @@ import BottomNavBar from "@/src/components/BottomNavBar/BottomNavBar";
 import ServiceCard from "@/src/components/ServiceCard/ServiceCard";
 import { useProfessions } from "@/src/hooks/useProfessions";
 import { getPortfolio, PortfolioData } from "@/src/services/portfolioService";
+import { Coordinates, getProfessionalLocation } from "@/src/services/locationService";
 import { listOpenServices, ServiceDocument } from "@/src/services/serviceService";
 import { formatProfessionName } from "@/src/utils/formatProfessionName";
-import { filterServices } from "@/src/utils/filterServices";
+import { filterServices, rankServicesByDistance } from "@/src/utils/filterServices";
+import { hasValidCoordinates } from "@/src/utils/proximity";
 import { matchProfessions } from "@/src/utils/matchProfessions";
 import { professionDuplicateKey } from "@/src/services/professionService";
 import EmptyStateMessage from "@/src/components/EmptyStateMessage/EmptyStateMessage";
@@ -41,6 +43,16 @@ function getProfessionIds(portfolio: PortfolioData): string[] {
   ].filter((id): id is string => typeof id === "string" && id.length > 0))];
 }
 
+// Mesmo valor padrão do raio de atuação no formulário do portfólio
+const DEFAULT_RADIUS_KM = 20;
+
+function resolveRadiusKm(...values: unknown[]): number {
+  const radius = values.find((value): value is number =>
+    typeof value === "number" && Number.isFinite(value) && value > 0);
+  return radius ?? DEFAULT_RADIUS_KM;
+}
+
+
 function normalizeText(value: string): string {
   return professionDuplicateKey(value).toLocaleLowerCase("pt-BR");
 }
@@ -54,6 +66,8 @@ export default function BuscaServicosScreen() {
   const [searchText, setSearchText] = useState("");
   const [selectedOption, setSelectedOption] = useState<SearchOption | null>(null);
   const [services, setServices] = useState<ServiceDocument[]>([]);
+  const [origin, setOrigin] = useState<Coordinates | null>(null);
+  const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -81,22 +95,21 @@ export default function BuscaServicosScreen() {
         const uid = auth.currentUser?.uid;
         if (!uid) throw new Error("Usuário não autenticado");
 
-        const currentPortfolio = await getPortfolio(uid);
+        const [currentPortfolio, location] = await Promise.all([
+          getPortfolio(uid),
+          getProfessionalLocation(uid),
+        ]);
         if (!active) return;
         setPortfolio(currentPortfolio);
+        setOrigin(hasValidCoordinates(location) ? location : null);
+        setRadiusKm(resolveRadiusKm(currentPortfolio?.radiusKm, location?.radiusKm));
 
-        if (!currentPortfolio?.isActive) {
+        if (!currentPortfolio?.isActive || !hasValidCoordinates(location)) {
           setLoading(false);
           return;
         }
 
-        const professionIds = getProfessionIds(currentPortfolio);
-        if (!allServices && (!currentPortfolio.mainProfessionId || professionIds.length === 0)) {
-          setLoading(false);
-          return;
-        }
-
-        const result = await listOpenServices(allServices ? undefined : professionIds);
+        const result = await listOpenServices();
         if (!active) return;
         setServices(result);
       } catch (loadError) {
@@ -109,7 +122,7 @@ export default function BuscaServicosScreen() {
 
     void loadServices();
     return () => { active = false; };
-  }, [allServices, retryCount]));
+  }, [retryCount]));
 
   const suggestions = useMemo<SearchOption[]>(() => {
     if (!searchText.trim() || selectedOption) return [];
@@ -135,17 +148,24 @@ export default function BuscaServicosScreen() {
     [portfolio],
   );
   const currentUserUid = auth.currentUser?.uid;
+
   const visibleServices = useMemo(
-    () => searchText.trim() && !selectedOption
+    () => !origin || (searchText.trim() && !selectedOption)
       ? []
-      : filterServices(
-        services,
-        portfolioProfessionIds,
+      : rankServicesByDistance(
+        filterServices(
+          services,
+          portfolioProfessionIds,
+          allServices,
+          selectedOption,
+          currentUserUid,
+        ),
+        origin,
+        radiusKm,
         allServices,
-        selectedOption,
-        currentUserUid,
+        portfolio?.mainProfessionId,
       ),
-    [allServices, currentUserUid, portfolioProfessionIds, searchText, selectedOption, services],
+    [allServices, currentUserUid, origin, portfolio, portfolioProfessionIds, radiusKm, searchText, selectedOption, services],
   );
 
   const handleSelectOption = (option: SearchOption) => {
@@ -170,7 +190,9 @@ export default function BuscaServicosScreen() {
       return (
         <View style={styles.messageContainer}>
           <ActivityIndicator size="large" color="#5B69A3" />
-          <Text style={styles.messageText}>Buscando serviços...</Text>
+          <Text style={styles.messageText}>
+            Estamos buscando serviços que combinam com seu perfil, considerando suas profissões e sua área de atuação. Aguarde um momentinho! 🔎
+          </Text>
         </View>
       );
     }
@@ -201,6 +223,23 @@ export default function BuscaServicosScreen() {
             onPress={() => navigation.navigate("FormularioProfissional")}
           >
             <Text style={styles.actionButtonText}>Acessar meu portfólio</Text>
+          </Pressable>
+        </View>
+      );
+    }
+    if (!origin) {
+      return (
+        <View style={styles.messageContainer}>
+          <Text style={styles.messageTitle}>Informe seu CEP de atuação</Text>
+          <Text style={styles.messageText}>
+            Precisamos do CEP de atuação do seu portfólio para mostrar os serviços dentro do seu raio de atendimento.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            style={styles.actionButton}
+            onPress={() => navigation.navigate("FormularioProfissional")}
+          >
+            <Text style={styles.actionButtonText}>Atualizar portfólio</Text>
           </Pressable>
         </View>
       );
@@ -245,7 +284,7 @@ export default function BuscaServicosScreen() {
       )
       : renderNoResults(
         "Nenhum serviço encontrado!",
-        "Ative “Exibir todos os serviços” para explorar outras oportunidades.",
+        `Não há serviços das suas profissões em até ${radiusKm} km. Ative “Exibir todos os serviços” para explorar outras oportunidades.`,
       );
   };
 
@@ -320,6 +359,7 @@ export default function BuscaServicosScreen() {
           renderItem={({ item }) => (
             <ServiceCard
               service={item}
+              distanceKm={item.distanceKm}
               onPress={(service) => navigation.navigate("DetalhesServico", { serviceId: service.id })}
             />
           )}

@@ -64,8 +64,8 @@ export default function HomeScreen() {
                 setLoadingProfessionals(false);
             },
         );
-    // O contador reinicia a assinatura quando o usuário tenta novamente.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // O contador reinicia a assinatura quando o usuário tenta novamente.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [retryCount]));
 
     const feedListRef = useRef<FlatList<CompleteProfessional & { distanceKm?: number }>>(null);
@@ -83,8 +83,8 @@ export default function HomeScreen() {
             setProfilesError(true);
             setLoadingProfiles(false);
         });
-    // O contador permite tentar novamente após falha na assinatura.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // O contador permite tentar novamente após falha na assinatura.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [retryCount]));
 
     const [clientCoordinates, setClientCoordinates] = useState<Coordinates | null>(null);
@@ -206,14 +206,14 @@ export default function HomeScreen() {
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                     loadingProfiles ? <ActivityIndicator accessibilityLabel="Carregando portfólios" color="#1A1A1A" /> :
-                    profilesError ? (
-                        <View>
-                            <Text style={styles.carouselMessage}>Não foi possível carregar os portfólios.</Text>
-                            <TouchableOpacity accessibilityRole="button" onPress={() => setRetryCount((count) => count + 1)}>
-                                <Text style={styles.retryText}>Tentar novamente</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ) : <Text style={styles.carouselMessage}>Nenhum portfólio completo disponível no momento.</Text>
+                        profilesError ? (
+                            <View>
+                                <Text style={styles.carouselMessage}>Não foi possível carregar os portfólios.</Text>
+                                <TouchableOpacity accessibilityRole="button" onPress={() => setRetryCount((count) => count + 1)}>
+                                    <Text style={styles.retryText}>Tentar novamente</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : <Text style={styles.carouselMessage}>Nenhum portfólio completo disponível no momento.</Text>
                 }
                 ListHeaderComponent={
                     <View>
@@ -251,7 +251,7 @@ export default function HomeScreen() {
                                         </TouchableOpacity>
                                     </View>
                                 ) : (
-                                    <Text style={styles.carouselMessage}>Nenhum profissional disponível no momento.</Text>
+                                    <Text style={styles.carouselMessage}>Ainda não há profissionais em destaque.</Text>
                                 )
                             }
                             showsHorizontalScrollIndicator={false}

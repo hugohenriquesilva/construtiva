@@ -25,10 +25,12 @@ import GradientButton from "@/src/components/GradientButton/GradientButton";
 import { AppAlert } from "@/src/components/AppAlert";
 import { auth } from "@/firebaseConfig";
 import { useProfessions } from "@/src/hooks/useProfessions";
-import { getPortfolio, PortfolioData } from "@/src/services/portfolioService";
+import { getPortfolio, getUserRole, PortfolioData } from "@/src/services/portfolioService";
+import { reportService } from "@/src/services/reportService";
 import {
   getServiceById,
   closeService,
+  deleteServiceAsAdmin,
   ServiceDocument,
   serviceDateToDate,
 } from "@/src/services/serviceService";
@@ -46,6 +48,8 @@ import {
 import { formatProfessionName } from "@/src/utils/formatProfessionName";
 import { RootStackParamList } from "../../../types/navigation";
 import { styles } from "./ServiceDetailsScreen.styles";
+
+const DELETE_COLORS: [string, string] = ["#E10B0B", "#B3261E"];
 
 type DetailsRoute = RouteProp<RootStackParamList, "DetalhesServico">;
 
@@ -258,6 +262,11 @@ export default function ServiceDetailsScreen() {
   const [closeConfirmationVisible, setCloseConfirmationVisible] = useState(false);
   const [serviceClosing, setServiceClosing] = useState(false);
   const serviceClosingRef = useRef(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showReportConfirm, setShowReportConfirm] = useState(false);
+  const [reportSaving, setReportSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const currentUserId = auth.currentUser?.uid;
   const isOwner = !!service && !!currentUserId && service.ownerUid === currentUserId;
@@ -272,6 +281,8 @@ export default function ServiceDetailsScreen() {
     isOwner,
     hasOwnProposal: !!userProposal,
   });
+
+  const canReportService = !!service && !!currentUserId && !isOwner && !isAdmin;
 
   useFocusEffect(
     useCallback(() => {
@@ -300,8 +311,12 @@ export default function ServiceDetailsScreen() {
           const currentProposal = currentUserId
             ? await getServiceProposal(result.id, currentUserId)
             : null;
+          const currentRole = currentUserId
+            ? await getUserRole(currentUserId).catch(() => null)
+            : null;
 
           if (!active) return;
+          setIsAdmin(currentRole === "admin");
 
           setActivePhotoIndex(0);
           setService(result);
@@ -355,7 +370,50 @@ export default function ServiceDetailsScreen() {
   const previewHeight = height;
   const publishedDate = service ? formatDate(service.createdAt) : null;
   const deadlineDate = service ? formatDate(service.deadline) : null;
-  const ownerName = ownerProfile?.displayName?.trim() || null;
+  const ownerName = service?.ownerName?.trim() || ownerProfile?.displayName?.trim() || null;
+  const ownerPhotoUri = service?.ownerPhotoUri || ownerProfile?.photoUri || null;
+
+  const handleConfirmDelete = async () => {
+    if (!service || !isAdmin || deleting) return;
+
+    setDeleting(true);
+    try {
+      await deleteServiceAsAdmin(service.id);
+      setShowDeleteConfirm(false);
+      Alert.alert("Serviço excluído", "O serviço foi excluído com sucesso.", [
+        { text: "OK", onPress: () => navigation.goBack() },
+      ]);
+    } catch (deleteError) {
+      console.error("Erro ao excluir serviço:", deleteError);
+      setShowDeleteConfirm(false);
+      Alert.alert("Erro", "Não foi possível excluir o serviço. Tente novamente.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+
+  const handleConfirmReport = async () => {
+    if (!service || !currentUserId || reportSaving) return;
+
+    setReportSaving(true);
+    try {
+      await reportService(service.id, service.title, currentUserId);
+      setShowReportConfirm(false);
+      Alert.alert("Denúncia enviada", "Obrigado! Nossa equipe vai analisar este serviço.");
+    } catch (reportError) {
+      setShowReportConfirm(false);
+      if (reportError instanceof Error && reportError.message === "report-duplicate") {
+        Alert.alert("Denúncia já enviada", "Você já denunciou este serviço.");
+      } else {
+        console.error("Erro ao denunciar serviço:", reportError);
+        Alert.alert("Erro", "Não foi possível enviar a denúncia. Tente novamente.");
+      }
+    } finally {
+      setReportSaving(false);
+    }
+  };
+
 
   const handleSubmitProposal = async () => {
     if (!service || !currentUserId) {
@@ -496,11 +554,17 @@ export default function ServiceDetailsScreen() {
             <View style={styles.serviceSummary}>
               <View style={styles.titleRow}>
                 <Text style={styles.title}>{service.title || "Serviço sem título"}</Text>
-                <View style={[styles.statusBadge, service.status !== "open" && styles.closedStatusBadge]}>
-                  <Text style={[styles.statusText, service.status !== "open" && styles.closedStatusText]}>
-                    {service.status === "open" ? "Aberto" : "Encerrado"}
-                  </Text>
-                </View>
+                {canReportService && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Denunciar serviço"
+                    hitSlop={10}
+                    style={styles.reportButton}
+                    onPress={() => setShowReportConfirm(true)}
+                  >
+                    <Feather name="flag" size={22} color="#B3261E" />
+                  </Pressable>
+                )}
               </View>
 
               <View style={styles.infoRow}>
@@ -514,6 +578,12 @@ export default function ServiceDetailsScreen() {
                     <Text style={styles.infoPillText}>{service.areas.join(" • ")}</Text>
                   </View>
                 )}
+              </View>
+
+              <View style={[styles.statusBadge, service.status !== "open" && styles.closedStatusBadge]}>
+                <Text style={[styles.statusText, service.status !== "open" && styles.closedStatusText]}>
+                  {service.status === "open" ? "Aberto" : "Encerrado"}
+                </Text>
               </View>
 
               {!!service.location && (
@@ -550,9 +620,9 @@ export default function ServiceDetailsScreen() {
             <View style={styles.clientSection}>
               <View style={styles.clientRow}>
                 <View style={styles.clientAvatar}>
-                  {ownerProfile?.photoUri ? (
+                  {ownerPhotoUri ? (
                     <Image
-                      source={{ uri: ownerProfile.photoUri }}
+                      source={{ uri: ownerPhotoUri }}
                       style={styles.clientAvatarImage}
                       contentFit="cover"
                     />
@@ -692,7 +762,49 @@ export default function ServiceDetailsScreen() {
                 <Text style={styles.closeServiceButtonText}>Encerrar serviço</Text>
               </Pressable>
             )}
+
+            {isAdmin && !isOwner && (
+              <View style={styles.adminDeleteWrapper}>
+                <GradientButton
+                  label={deleting ? "Excluindo..." : "Excluir serviço"}
+                  colors={DELETE_COLORS}
+                  onPress={() => setShowDeleteConfirm(true)}
+                  disabled={deleting}
+                />
+              </View>
+            )}
           </ScrollView>
+
+          <AppAlert
+            visible={showDeleteConfirm}
+            character={require("@/assets/images/cuidado.png")}
+            title="Tem certeza que deseja excluir este serviço?"
+            subTitle={null}
+            messages={["O serviço, as fotos e as propostas recebidas serão apagados.", "Esta ação não pode ser desfeita."]}
+            buttonLabel="Cancelar"
+            onClose={() => setShowDeleteConfirm(false)}
+            secondaryButtonLabel={deleting ? "Excluindo..." : "Excluir serviço"}
+            onSecondaryPress={handleConfirmDelete}
+          />
+
+
+          <AppAlert
+            visible={showReportConfirm}
+            character={require("@/assets/images/cuidado.png")}
+            title="Deseja denunciar esse serviço?"
+            subTitle={null}
+            messages={null}
+            buttonLabel="Sim, ele não segue as diretrizes do aplicativo"
+            buttonTextStyle={styles.reportConfirmationText}
+            buttonLoading={reportSaving}
+            buttonLoadingLabel="Enviando..."
+            onClose={handleConfirmReport}
+            secondaryButtonLabel="Voltar"
+            onSecondaryPress={() => {
+              if (!reportSaving) setShowReportConfirm(false);
+            }}
+          />
+
 
           <AppAlert
             visible={closeConfirmationVisible}

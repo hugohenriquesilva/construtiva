@@ -53,7 +53,14 @@ describe("service management rules", () => {
       isOwner: false,
       hasOwnProposal: false,
     })).toBe(true);
+    expect(canViewServiceDetails({
+      serviceStatus: "closed",
+      isOwner: false,
+      hasOwnProposal: false,
+      isAdmin: true,
+    })).toBe(true);
   });
+
 
   it("permits closing only an open service belonging to the current user", () => {
     expect(canCloseService({

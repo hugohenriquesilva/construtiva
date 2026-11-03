@@ -1,11 +1,12 @@
 import { useState } from "react";
 import {
   Image,
-  ImageBackground,
   ImageSourcePropType,
   Pressable,
+  StyleSheet,
   Text,
   useWindowDimensions,
+  View,
 } from "react-native";
 
 import { getEmptyStateMascotSize } from "@/src/utils/emptyStateMascot";
@@ -39,11 +40,8 @@ export default function EmptyStateMessage({
   );
 
   return (
-    <ImageBackground
-      source={require("../../../assets/images/background.png")}
+    <View
       style={styles.container}
-      imageStyle={styles.backgroundImage}
-      resizeMode="cover"
       onLayout={({ nativeEvent }) => {
         setAvailableHeight((current) =>
           Math.abs(current - nativeEvent.layout.height) > 1
@@ -53,9 +51,9 @@ export default function EmptyStateMessage({
       }}
     >
       <Image
-        source={mascotSource}
-        style={[styles.mascot, mascotSize]}
-        resizeMode="contain"
+        source={require("../../../assets/images/background.png")}
+        style={[StyleSheet.absoluteFill, styles.backgroundImage]}
+        resizeMode="cover"
       />
       <Text style={styles.title} maxFontSizeMultiplier={1.4}>
         {title}
@@ -76,6 +74,6 @@ export default function EmptyStateMessage({
           </Text>
         </Pressable>
       )}
-    </ImageBackground>
+    </View>
   );
 }

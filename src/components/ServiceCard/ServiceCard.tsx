@@ -8,6 +8,7 @@ import { styles } from "./ServiceCard.styles";
 
 type Props = {
   service: ServiceDocument;
+  distanceKm?: number;
   onPress: (service: ServiceDocument) => void;
 };
 
@@ -17,7 +18,7 @@ function formatPublishedDate(value: ServiceDocument["createdAt"]): string | null
   return date.toLocaleDateString("pt-BR");
 }
 
-export default function ServiceCard({ service, onPress }: Props) {
+export default function ServiceCard({ service, distanceKm, onPress }: Props) {
   const imageUri = service.photos[0];
   const [imageStatus, setImageStatus] = useState<{
     uri: string | undefined;
@@ -78,7 +79,12 @@ export default function ServiceCard({ service, onPress }: Props) {
             {!!service.location && (
               <View style={styles.locationRow}>
                 <Ionicons name="location-outline" size={15} color="#777777" />
-                <Text style={styles.locationText}>{service.location}</Text>
+                <Text style={styles.locationText}>
+                  {service.location}
+                  {distanceKm !== undefined
+                    ? ` • ${distanceKm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km de você`
+                    : ""}
+                </Text>
               </View>
             )}
           </View>

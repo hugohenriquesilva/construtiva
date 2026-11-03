@@ -1,9 +1,9 @@
 import { auth, db } from "@/firebaseConfig";
 import { logoutUser } from "@/src/services/authService";
 import { cpfMask } from "@/src/utils/CpfMask";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { getPortfolio } from "@/src/services/portfolioService";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
-  CommonActions,
   useFocusEffect,
   useNavigation,
   useRoute,
@@ -11,7 +11,7 @@ import {
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
 import { doc, getDoc } from "firebase/firestore";
-import { useCallback, useState } from "react";
+import { ReactNode, useCallback, useState } from "react";
 import {
   Alert,
   Image,
@@ -28,7 +28,6 @@ import BottomNavBar from "../../components/BottomNavBar/BottomNavBar";
 import DeleteAccount from "../../components/DeleteAccount/DeleteAccount";
 import ChangePassword from "../../components/ChangePassword/ChangePassword";
 import EditProfile from "../../components/EditProfile/EditProfile";
-import { menuItems } from "./OtherInformationScreen.mock";
 import { styles } from "./OtherInformationScreen.styles";
 
 function showMockAction(title: string) {
@@ -38,11 +37,58 @@ function showMockAction(title: string) {
   );
 }
 
+type FeatherIconName = keyof typeof Feather.glyphMap;
+
+function MenuSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionCard}>{children}</View>
+    </View>
+  );
+}
+
+function MenuRow({
+  icon,
+  label,
+  onPress,
+  badge,
+  destructive = false,
+  last = false,
+}: {
+  icon: FeatherIconName;
+  label: string;
+  onPress: () => void;
+  badge?: { label: string; active: boolean };
+  destructive?: boolean;
+  last?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [styles.menuRow, !last && styles.menuRowDivider, pressed && styles.menuRowPressed]}
+      onPress={onPress}
+    >
+      <Feather name={icon} size={20} color={destructive ? "#E10B0B" : "#5B69A3"} />
+      <Text style={[styles.menuLabel, destructive && styles.destructiveLabel]}>{label}</Text>
+      {badge && (
+        <Text style={[styles.badge, badge.active ? styles.activeBadge : styles.inactiveBadge]}>
+          {badge.label}
+        </Text>
+      )}
+      {!destructive && <Feather name="chevron-right" size={20} color="#B0B0B0" />}
+    </Pressable>
+  );
+}
+
 export default function OtherInformationScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "MaisInformacoes">>();
   const [userProfile, setUserProfile] = useState<any>(null);
+  // null enquanto carrega; o selo Ativo/Inativo só aparece depois de saber o status
+  const [portfolioActive, setPortfolioActive] = useState<boolean | null>(null);
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -67,12 +113,15 @@ export default function OtherInformationScreen() {
         try {
           const uid = auth.currentUser?.uid;
           if (uid) {
-            // Carregar dados do perfil
-            const userRef = doc(db, "users", uid);
-            const userSnap = await getDoc(userRef);
+            // Dados do perfil e status do portfólio em paralelo
+            const [userSnap, portfolio] = await Promise.all([
+              getDoc(doc(db, "users", uid)),
+              getPortfolio(uid).catch(() => null),
+            ]);
             if (userSnap.exists()) {
               setUserProfile(userSnap.data());
             }
+            setPortfolioActive(portfolio?.isActive ?? false);
           }
         } catch (error) {
           console.error("Erro ao carregar dados:", error);
@@ -97,13 +146,9 @@ export default function OtherInformationScreen() {
 
   async function handleSignOut() {
     try {
+      // O AppNavigator troca para a tela de login sozinho quando o Firebase
+      // avisa que não há mais usuário (onAuthStateChanged)
       await logoutUser();
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 0,
-          routes: [{ name: "Login" }],
-        }),
-      );
     } catch {
       Alert.alert(
         "Erro ao sair",
@@ -161,66 +206,45 @@ export default function OtherInformationScreen() {
             </Pressable>
           )}
 
-          <View style={styles.menuList}>
-            {userProfile?.role === "admin" && (
-              <Pressable
-                style={styles.menuButton}
-                onPress={() => navigation.navigate("EdicaoProfissoes")}
-              >
-                <Text style={styles.menuLabel}>Edição de profissões</Text>
-              </Pressable>
-            )}
-            {userProfile?.role === "admin" && (
-              <Pressable
-                style={styles.menuButton}
-                onPress={() => navigation.navigate("Denuncias")}
-              >
-                <Text style={styles.menuLabel}>Denúncias</Text>
-              </Pressable>
-            )}
-            {menuItems.map((item) => (
-              <Pressable
-                key={item.label}
-                style={styles.menuButton}
-                onPress={() => {
-                  if (item.label === "Minha senha") {
-                    setShowPasswordModal(true);
-                  } else {
-                    showMockAction(item.action);
-                  }
-                }}
-              >
-                <Text style={styles.menuLabel}>{item.label}</Text>
-                {item.status ? (
-                  <Text
-                    style={[
-                      styles.badge,
-                      item.status === "Ativo"
-                        ? styles.activeBadge
-                        : styles.inactiveBadge,
-                    ]}
-                  >
-                    {item.status}
-                  </Text>
-                ) : null}
-              </Pressable>
-            ))}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Excluir minha conta"
-              style={styles.menuButton}
-              onPress={() => setShowDeleteModal(true)}
-            >
-              <Text style={styles.menuLabel}>Excluir conta</Text>
-            </Pressable>
-          </View>
-        </ScrollView>
+          <MenuSection title="Minhas informações">
+            <MenuRow icon="user" label="Editar perfil" onPress={() => setShowEditModal(true)} />
+            <MenuRow icon="lock" label="Minha senha" onPress={() => setShowPasswordModal(true)} last />
+          </MenuSection>
 
-        <View style={styles.signOutFooter}>
+          <MenuSection title="Portfólio e serviços">
+            <MenuRow
+              icon="briefcase"
+              label="Meu portfólio"
+              badge={portfolioActive === null
+                ? undefined
+                : { label: portfolioActive ? "Ativo" : "Inativo", active: portfolioActive }}
+              onPress={() =>
+                navigation.navigate(portfolioActive ? "PortfolioProfissional" : "FormularioProfissional")
+              }
+            />
+            <MenuRow icon="clipboard" label="Meus serviços" onPress={() => navigation.navigate("MeusServicos")} last />
+          </MenuSection>
+
+          {userProfile?.role === "admin" && (
+            <MenuSection title="Administração">
+              <MenuRow icon="tag" label="Edição de profissões" onPress={() => navigation.navigate("EdicaoProfissoes")} />
+              <MenuRow icon="flag" label="Denúncias" onPress={() => navigation.navigate("Denuncias")} last />
+            </MenuSection>
+          )}
+
+          <MenuSection title="Ajuda e privacidade">
+            <MenuRow icon="help-circle" label="Perguntas frequentes" onPress={() => showMockAction("Perguntas frequentes")} />
+            <MenuRow icon="shield" label="Nossa política de privacidade" onPress={() => showMockAction("Política de privacidade")} last />
+          </MenuSection>
+
+          <MenuSection title="Conta">
+            <MenuRow icon="trash-2" label="Excluir conta" destructive onPress={() => setShowDeleteModal(true)} last />
+          </MenuSection>
+
           <Pressable accessibilityRole="button" style={styles.signOutButton} onPress={handleSignOut}>
             <Text style={styles.signOutLabel}>Sair</Text>
           </Pressable>
-        </View>
+        </ScrollView>
 
         <BottomNavBar
           activeTab="menu"
