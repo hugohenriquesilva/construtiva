@@ -13,9 +13,10 @@ export function canViewServiceDetails(params: {
   serviceStatus: string;
   isOwner: boolean;
   hasOwnProposal: boolean;
+  isAdmin?: boolean;
 }): boolean {
-  const { serviceStatus, isOwner, hasOwnProposal } = params;
-  return serviceStatus === "open" || isOwner || hasOwnProposal;
+  const { serviceStatus, isOwner, hasOwnProposal, isAdmin = false } = params;
+  return serviceStatus === "open" || isOwner || hasOwnProposal || isAdmin;
 }
 
 export function canCloseService(params: {

@@ -8,6 +8,7 @@ import {
 import { detectImageFormat, ImageUploadError, readImageFile } from "../src/utils/readImageFile";
 import { traceServiceUploadFailure } from "../src/utils/serviceUploadTrace";
 import type { ProfessionalFormData } from "../types/professionalForm";
+import { geocodeAddress } from "../src/services/locationService";
 
 const mocks = vi.hoisted(() => ({
   bytes: new Uint8Array(),
@@ -34,7 +35,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("expo-file-system", () => ({
   File: class {
-    constructor(readonly uri: string) {}
+    constructor(readonly uri: string) { }
 
     get exists() {
       return mocks.fileExists;
@@ -65,7 +66,7 @@ vi.mock("firebase/storage", () => ({
 }));
 
 vi.mock("firebase/firestore", () => ({
-  Timestamp: class {},
+  Timestamp: class { },
   addDoc: mocks.addDoc,
   collection: mocks.collection,
   serverTimestamp: mocks.serverTimestamp,
@@ -85,6 +86,14 @@ vi.mock("../firebaseConfig", () => ({
   auth: { currentUser: { uid: "user-1" } },
   db: {},
   storage: {},
+}));
+
+vi.mock("../src/services/cepService", () => ({
+  fetchAddressByCep: vi.fn(async () => ({ street: "", neighborhood: "", city: "Cidade", state: "SP" })),
+}));
+
+vi.mock("../src/services/locationService", () => ({
+  geocodeAddress: vi.fn(async () => null),
 }));
 
 const jpegBytes = () => new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
@@ -170,7 +179,7 @@ describe("image file validation and upload", () => {
       "Error: sensitive outer message",
       "    at uploadImageToStorage (file:///private/uid-456/imageStorageService.ts:10:2)",
     ].join("\n");
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => { });
 
     traceServiceUploadFailure("uploadBytes", error);
 
@@ -396,6 +405,48 @@ describe("image file validation and upload", () => {
 
     expect(mocks.uploadBytes).not.toHaveBeenCalled();
     expect(mocks.addDoc.mock.calls[0][1].photos).toEqual([]);
+    expect(mocks.addDoc.mock.calls[0][1]).not.toHaveProperty("latitude");
+  });
+
+  it("saves the client's name and photo so the service shows who requested it", async () => {
+    mocks.getDoc.mockResolvedValueOnce({
+      data: () => ({ fullName: " Maria Souza ", photoUri: "https://storage/maria.jpg", CPF: "12345678900" }),
+    });
+
+    await createService({
+      title: "Teste",
+      areas: ["Pintura"],
+      professionId: "painter",
+      description: "Descrição",
+      cep: "01001000",
+      location: "São Paulo - SP",
+      deadline: null,
+      photos: [],
+      aiReview: { verdict: "approved", originalDescription: "Descrição" },
+    });
+
+    const saved = mocks.addDoc.mock.calls[0][1];
+    expect(saved).toMatchObject({ ownerName: "Maria Souza", ownerPhotoUri: "https://storage/maria.jpg" });
+    expect(saved).not.toHaveProperty("CPF");
+  });
+
+
+  it("saves the CEP coordinates so professionals can search by distance", async () => {
+    vi.mocked(geocodeAddress).mockResolvedValueOnce({ latitude: -23.55, longitude: -46.63 });
+
+    await createService({
+      title: "Teste",
+      areas: ["Pintura"],
+      professionId: "painter",
+      description: "Descrição",
+      cep: "01001000",
+      location: "São Paulo - SP",
+      deadline: null,
+      photos: [],
+      aiReview: { verdict: "approved", originalDescription: "Descrição" },
+    });
+
+    expect(mocks.addDoc.mock.calls[0][1]).toMatchObject({ latitude: -23.55, longitude: -46.63 });
   });
 
   it("uploads every service photo and only persists completed download URLs", async () => {
@@ -534,7 +585,7 @@ describe("image file validation and upload", () => {
 
   it("does not save a portfolio when uploading a new photo fails", async () => {
     mocks.uploadBytes.mockRejectedValueOnce(new Error("storage failure"));
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => { });
 
     await expect(savePortfolio(portfolioForm({
       servicePhotos: ["https://storage.example/existing.jpg", "file:///local/new-work"],
@@ -547,7 +598,7 @@ describe("image file validation and upload", () => {
 
   it("does not save the portfolio when the local file and XHR Blob sizes differ", async () => {
     mocks.uriToBlob.mockResolvedValueOnce(new Blob(["x"], { type: "image/jpeg" }));
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => { });
 
     await expect(savePortfolio(portfolioForm({
       servicePhotos: ["file:///local/changed"],
@@ -564,7 +615,7 @@ describe("image file validation and upload", () => {
       size: 14,
       contentType: "application/octet-stream",
     });
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => { });
 
     await expect(savePortfolio(portfolioForm({
       servicePhotos: ["file:///local/new-work"],

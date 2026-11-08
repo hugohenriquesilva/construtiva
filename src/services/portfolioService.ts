@@ -54,28 +54,26 @@ export async function savePortfolio(formData: ProfessionalFormData): Promise<voi
     try {
         const portfolioRef = doc(db, 'portfolios', uid);
 
-        // Upload da foto de perfil se existir e for local (ainda não é uma URL remota)
-        let photoUrl: string | null = formData.photoUri;
-        if (formData.photoUri && !formData.photoUri.startsWith('http')) {
-            photoUrl = await uploadServiceImageToStorage(
-                formData.photoUri,
-                `portfolios/${uid}/avatar`,
-            );
-        }
-
-        // Upload das fotos de serviço se existirem
-        const servicePhotosUrls: (string | null)[] = await Promise.all(
-            formData.servicePhotos.map(async (uri, index) => {
-                if (!uri) return null;
-                if (!uri.startsWith('http')) {
-                    return await uploadServiceImageToStorage(
-                        uri,
-                        `portfolios/${uid}/service_${index}`,
-                    );
-                }
-                return uri; // já é URL
-            })
-        );
+        // Uploads em paralelo (foto de perfil e fotos de serviço); só sobem as fotos locais,
+        // as que já são URL remota foram enviadas antes. A role é lida ao mesmo tempo.
+        const [photoUrl, servicePhotosUrls, currentRole] = await Promise.all([
+            formData.photoUri && !formData.photoUri.startsWith('http')
+                ? uploadServiceImageToStorage(formData.photoUri, `portfolios/${uid}/avatar`)
+                : Promise.resolve(formData.photoUri),
+            Promise.all(
+                formData.servicePhotos.map(async (uri, index): Promise<string | null> => {
+                    if (!uri) return null;
+                    if (!uri.startsWith('http')) {
+                        return await uploadServiceImageToStorage(
+                            uri,
+                            `portfolios/${uid}/service_${index}`,
+                        );
+                    }
+                    return uri; // já é URL
+                })
+            ),
+            getUserRole(uid),
+        ]);
 
         const portfolioData: PortfolioData = {
             displayName: formData.displayName,
@@ -99,7 +97,6 @@ export async function savePortfolio(formData: ProfessionalFormData): Promise<voi
 
         // Portfólio e role gravados juntos: quem tem portfólio passa a ser "professional" (admin nunca muda)
         const userRef = doc(db, 'users', uid);
-        const currentRole = await getUserRole(uid);
         const batch = writeBatch(db);
         batch.set(portfolioRef, portfolioData, { merge: true });
         if (currentRole !== 'admin' && currentRole !== 'professional') {
@@ -258,10 +255,11 @@ export function subscribeToTopProfessionals(
             };
         });
 
-        professionals.sort((a, b) =>
+        const mostLiked = professionals.filter((professional) => (professional.likesCount ?? 0) > 0);
+        mostLiked.sort((a, b) =>
             (b.likesCount ?? 0) - (a.likesCount ?? 0) || a.id.localeCompare(b.id)
         );
-        onUpdate(professionals.slice(0, 10));
+        onUpdate(mostLiked.slice(0, 10));
     }, onError);
 }
 

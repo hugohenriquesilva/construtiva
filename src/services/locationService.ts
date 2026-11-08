@@ -40,8 +40,8 @@ export async function geocodeAddress(address: GeocodeAddress): Promise<Coordinat
       limit: '1',
       countrycodes: 'br',
       country: 'Brasil',
-      city: address.city,
-      postalcode: address.zipCode
+      city: address.city
+      // postalcode: address.zipCode
     });
     if (address.street) structuredParams.set('street', address.street);
 
@@ -124,4 +124,20 @@ export async function getClientLocation(uid: string): Promise<ClientLocationData
   if (!snap.exists()) return null;
 
   return snap.data() as ClientLocationData;
+}
+
+export interface ProfessionalLocationData {
+  uid: string;
+  latitude: number;
+  longitude: number;
+  geohash: string | null;
+  radiusKm: number;
+}
+
+// Busca a localização já salva do profissional na coleção "professionalLocations"
+export async function getProfessionalLocation(uid: string): Promise<ProfessionalLocationData | null> {
+  const snap = await getDoc(doc(db, 'professionalLocations', uid));
+  if (!snap.exists()) return null;
+
+  return snap.data() as ProfessionalLocationData;
 }

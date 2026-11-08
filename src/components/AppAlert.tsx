@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Modal,
   View,
@@ -7,10 +6,10 @@ import {
   StyleSheet,
   ImageSourcePropType,
   Image,
-  ImageBackground,
   StyleProp,
   TextStyle,
 } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button } from "./TouchableOpacityButton";
 
 interface AppAlertProps {
@@ -26,6 +25,7 @@ interface AppAlertProps {
   onClose: () => void;
   secondaryButtonLabel?: string;
   onSecondaryPress?: () => void;
+  onDismiss?: () => void;
 }
 export function AppAlert({
   visible,
@@ -40,16 +40,24 @@ export function AppAlert({
   onClose,
   secondaryButtonLabel,
   onSecondaryPress,
+  onDismiss,
 }: AppAlertProps) {
   return (
-    <Modal transparent visible={visible} animationType="slide">
+    <Modal
+      transparent
+      visible={visible}
+      animationType="slide"
+      onRequestClose={onDismiss}
+    >
       <View style={styles.overlay}>
         <View style={styles.container}>
-          <ImageBackground
-            source={require("@/assets/images/background.png")}
-            style={styles.background}
-            blurRadius={0.5}
-          >
+          <View style={styles.background}>
+            {/* Fundo: Image posicionada atrás do personagem (ImageBackground está obsoleto) */}
+            <Image
+              source={require("@/assets/images/background.png")}
+              style={StyleSheet.absoluteFill}
+              blurRadius={0.5}
+            />
             {character && (
               <Image
                 source={character}
@@ -57,7 +65,18 @@ export function AppAlert({
                 resizeMode="contain"
               />
             )}
-          </ImageBackground>
+            {onDismiss && (
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={onDismiss}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel="Fechar"
+              >
+                <Ionicons name="close" size={22} color="#1A1A1A" />
+              </TouchableOpacity>
+            )}
+          </View>
 
           <View style={styles.content}>
             <Text style={styles.title}>{title}</Text>
@@ -168,5 +187,17 @@ const styles = StyleSheet.create({
     color: "#B3261E",
     fontSize: 15,
     fontWeight: "600",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
   },
 });

@@ -31,7 +31,8 @@ import { formatProfessionName } from '../../utils/formatProfessionName';
 import { ImageUploadError } from '../../utils/readImageFile';
 import { savePortfolio, getPortfolio } from '../../services/portfolioService';
 import { fetchAddressByCep } from '../../services/cepService';
-import { geocodeAddress, saveUserLocation, Coordinates } from '../../services/locationService';
+import { geocodeAddress, getProfessionalLocation, saveUserLocation, Coordinates } from '../../services/locationService';
+import { hasValidCoordinates } from '../../utils/proximity';
 import { fetchGeohash } from '../../services/geohashService';
 import { auth } from '@/firebaseConfig';
 import { AppAlert } from '@/src/components/AppAlert';
@@ -41,6 +42,11 @@ const ORANGE = 'rgba(210, 110, 56, 1)';
 const WHITE = 'rgba(255, 255, 255, 1)';
 
 const SERVICE_PHOTOS_COUNT = 6;
+
+function locationKey(coords: Coordinates, radiusKm: number): string {
+  return `${coords.latitude},${coords.longitude},${radiusKm}`;
+}
+
 
 export default function ProfessionalFormScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -68,6 +74,8 @@ export default function ProfessionalFormScreen() {
   const [cepLoading, setCepLoading] = useState(false);
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [geohash, setGeohash] = useState<string | null>(null);
+  const [portfolioExists, setPortfolioExists] = useState<boolean | null>(null);
+  const savedLocationKey = React.useRef<string | null>(null);
   const [errors, setErrors] = useState<Set<keyof ProfessionalFormData>>(new Set());
   const [successModalType, setSuccessModalType] = useState<'active' | 'inactive' | 'updated' | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -87,7 +95,16 @@ export default function ProfessionalFormScreen() {
         try {
           const uid = auth.currentUser?.uid;
           if (uid) {
-            const portfolio = await getPortfolio(uid);
+            const [portfolio, location] = await Promise.all([
+              getPortfolio(uid),
+              getProfessionalLocation(uid).catch(() => null),
+            ]);
+            setPortfolioExists(portfolio !== null);
+            if (hasValidCoordinates(location)) {
+              setCoords({ latitude: location.latitude, longitude: location.longitude });
+              setGeohash(location.geohash ?? null);
+              savedLocationKey.current = locationKey(location, location.radiusKm);
+            }
             if (portfolio) {
               // Preencher o formulário com os dados salvos
               setForm({
@@ -208,7 +225,7 @@ export default function ProfessionalFormScreen() {
     try {
       setLoading(true);
 
-      const portfolioExistedBeforeSave = (await getPortfolio()) !== null;
+      const portfolioExistedBeforeSave = portfolioExists ?? (await getPortfolio()) !== null;
 
       // Salvar no Firestore + upload de fotos
       await savePortfolio(form);
@@ -234,13 +251,17 @@ export default function ProfessionalFormScreen() {
 
         console.log('[handleSave] uid:', uid, 'locationCoords:', locationCoords, 'locationGeohash:', locationGeohash, 'radiusKm:', form.radiusKm);
 
-        if (uid && locationCoords) {
+        const nextLocationKey = locationCoords ? locationKey(locationCoords, form.radiusKm) : null;
+        if (uid && locationCoords && nextLocationKey !== savedLocationKey.current) {
           await saveUserLocation(uid, locationCoords.latitude, locationCoords.longitude, locationGeohash, form.radiusKm);
+          savedLocationKey.current = nextLocationKey;
           console.log('[handleSave] localização salva com sucesso');
         }
       } catch (error: any) {
         console.error('Erro ao salvar localização:', error?.message ?? error, error?.code);
       }
+
+      setPortfolioExists(true);
 
       setSuccessModalType(portfolioExistedBeforeSave ? 'updated' : form.isActive ? 'active' : 'inactive');
     } catch (error) {
@@ -620,23 +641,23 @@ export default function ProfessionalFormScreen() {
           successModalType === 'updated'
             ? 'Portfólio atualizado com sucesso!'
             : successModalType === 'inactive'
-            ? 'Que pena que desativou seu portifólio!'
-            : 'Parabéns por ativar o seu portifólio'
+              ? 'Que pena que desativou seu portifólio!'
+              : 'Parabéns por ativar o seu portifólio'
         }
         subTitle={null}
         messages={
           successModalType === 'updated'
             ? ['Suas alterações foram salvas.']
             : successModalType === 'inactive'
-            ? [
-              'Ninguém poderá mais ver os seus serviços.',
-              'Seu portifólio deverá aparecer como desativado.',
-            ]
-            : [
-              'Seu portfólio foi publicado',
-              'Outras pessoas já podem ver as informações que você cadastrou',
-              'Seu portifólio deverá aparecer como ativado.',
-            ]
+              ? [
+                'Ninguém poderá mais ver os seus serviços.',
+                'Seu portifólio deverá aparecer como desativado.',
+              ]
+              : [
+                'Seu portfólio foi publicado',
+                'Outras pessoas já podem ver as informações que você cadastrou',
+                'Seu portifólio deverá aparecer como ativado.',
+              ]
         }
         onClose={() => {
           setSuccessModalType(null);
@@ -650,13 +671,17 @@ export default function ProfessionalFormScreen() {
         title="Tem certeza que deseja sair sem salvar as informações?"
         subTitle={null}
         messages={null}
-        buttonLabel="Cancelar"
-        onClose={() => setShowLeaveConfirm(false)}
+        buttonLabel="Salvar Alterações"
+        onClose={() => {
+          setShowLeaveConfirm(false);
+          handleSave();
+        }}
         secondaryButtonLabel="Sair sem Salvar"
         onSecondaryPress={() => {
           setShowLeaveConfirm(false);
           navigation.goBack();
         }}
+        onDismiss={() => setShowLeaveConfirm(false)}
       />
     </SafeAreaView>
   );

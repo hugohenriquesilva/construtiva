@@ -9,6 +9,7 @@ import { db, storage } from '@/firebaseConfig';
 import { fetchAddressByCep, CepAddress } from '@/src/services/cepService';
 import { geocodeAddress, saveClientLocation, getClientLocation, Coordinates } from '@/src/services/locationService';
 import { fetchGeohash } from '@/src/services/geohashService';
+import { syncServiceOwnerInfo } from '@/src/services/serviceService';
 import { cepMask } from '@/src/utils/CepMask';
 import { uriToBlob } from '@/src/utils/UriToBlob';
 import GradientButton from '../GradientButton/GradientButton';
@@ -217,7 +218,7 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
         updates.photoUri = await getDownloadURL(snapshot.ref);
       }
 
-      if (!deleteResidentialLocation && coords) {
+      if (!deleteResidentialLocation && coords && cepEditedRef.current) {
         const digits = cep.replace(/\D/g, '');
         await saveClientLocation(uid, coords.latitude, coords.longitude, geohash, digits);
         updates.location = true;
@@ -231,6 +232,12 @@ export default function EditProfile({ visible, uid, currentName, currentPhotoUri
         await batch.commit();
       } else {
         await setDoc(doc(db, 'users', uid), updates, { merge: true });
+      }
+
+      const nextPhotoUri = updates.photoUri ?? currentPhotoUri ?? null;
+      if (updates.fullName !== currentName.trim() || nextPhotoUri !== (currentPhotoUri ?? null)) {
+        syncServiceOwnerInfo(uid, updates.fullName, nextPhotoUri).catch((syncError) =>
+          console.error('Erro ao atualizar o cliente nos serviços:', syncError));
       }
 
       onSaved(updates);
