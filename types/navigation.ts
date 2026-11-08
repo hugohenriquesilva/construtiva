@@ -14,4 +14,6 @@ export type RootStackParamList = {
   BuscaServicos: undefined;
   DetalhesServico: { serviceId: string };
   Denuncias: undefined;
+  PerguntasFrequentes: { topicId?: string } | undefined;
+  PrivacidadeTermos: { tab?: "privacy" | "terms" } | undefined;
 };

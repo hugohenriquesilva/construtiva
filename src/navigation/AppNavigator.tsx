@@ -21,6 +21,8 @@ import ReportsAdminScreen from '../screens/ReportsAdmin/ReportsAdminScreen';
 import BuscaServicosScreen from '../screens/BuscaServicos/BuscaServicosScreen';
 import ServiceDetailsScreen from '../screens/ServiceDetails/ServiceDetailsScreen';
 import MyServicesScreen from '../screens/MyServices/MyServicesScreen';
+import FaqScreen from '../screens/Faq/FaqScreen';
+import PrivacyTermsScreen from '../screens/PrivacyTerms/PrivacyTermsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -71,6 +73,8 @@ export default function AppNavigator() {
             <Stack.Screen name="DetalhesServico" component={ServiceDetailsScreen} />
             <Stack.Screen name="EdicaoProfissoes" component={ProfessionsAdminScreen} />
             <Stack.Screen name="Denuncias" component={ReportsAdminScreen} />
+            <Stack.Screen name="PerguntasFrequentes" component={FaqScreen} />
+            <Stack.Screen name="PrivacidadeTermos" component={PrivacyTermsScreen} />
           </>
         ) : (
           <>

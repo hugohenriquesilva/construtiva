@@ -233,8 +233,8 @@ export default function OtherInformationScreen() {
           )}
 
           <MenuSection title="Ajuda e privacidade">
-            <MenuRow icon="help-circle" label="Perguntas frequentes" onPress={() => showMockAction("Perguntas frequentes")} />
-            <MenuRow icon="shield" label="Nossa política de privacidade" onPress={() => showMockAction("Política de privacidade")} last />
+            <MenuRow icon="help-circle" label="Perguntas frequentes" onPress={() => navigation.navigate("PerguntasFrequentes")} />
+            <MenuRow icon="shield" label="Nossa política de privacidade" onPress={() => navigation.navigate("PrivacidadeTermos")} last />
           </MenuSection>
 
           <MenuSection title="Conta">
